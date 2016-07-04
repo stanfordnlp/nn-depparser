@@ -14,12 +14,13 @@ import theano.tensor as T
 import lasagne
 import numpy as np
 
+
 class Parser:
 
     def __init__(self, dataset, args):
         logging.info('Build dictionary for dependency deprel.')
         deprel = list(set([w for ex in dataset for w in ex['label']]))
-        tok2id = {L_PREFIX + l : i for (i, l) in enumerate(deprel)}
+        tok2id = {L_PREFIX + l: i for (i, l) in enumerate(deprel)}
         tok2id[L_PREFIX + UNK] = self.L_UNK = len(tok2id)
         tok2id[L_PREFIX + NULL] = self.L_NULL = len(tok2id)
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
@@ -41,7 +42,7 @@ class Parser:
 
         logging.info('Build dictionary for part-of-speech tags.')
         tok2id.update(utils.build_dict([P_PREFIX + w for ex in dataset for w in ex['pos']],
-                                        offset=len(tok2id)))
+                                       offset=len(tok2id)))
         tok2id[P_PREFIX + UNK] = self.P_UNK = len(tok2id)
         tok2id[P_PREFIX + NULL] = self.P_NULL = len(tok2id)
         tok2id[P_PREFIX + ROOT] = self.P_ROOT = len(tok2id)
@@ -54,7 +55,7 @@ class Parser:
         tok2id[ROOT] = self.ROOT = len(tok2id)
 
         self.tok2id = tok2id
-        self.id2tok = {v : k for (k, v) in tok2id.items()}
+        self.id2tok = {v: k for (k, v) in tok2id.items()}
 
         self.n_features = 18 + (18 if args.use_pos else 0) + (12 if args.use_dep else 0)
         self.n_tokens = len(tok2id)
@@ -69,7 +70,7 @@ class Parser:
     def vectorize(self, examples):
         """
             Vectorize the examples.
-            tok2id include words, part-of-speech tags and deprel.
+            tok2id includes words, part-of-speech tags and deprel.
             Also add a ROOT token to the front of the sequence.
         """
         vec_examples = []
@@ -79,7 +80,7 @@ class Parser:
                                    else self.P_UNK for w in ex['pos']]
             head = [-1] + ex['head']
             label = [-1] + [self.tok2id[L_PREFIX + w] if L_PREFIX + w in self.tok2id
-                                     else self.L_UNK for w in ex['label']]
+                            else self.L_UNK for w in ex['label']]
             vec_examples.append({'word': word, 'pos': pos,
                                  'head': head, 'label': label})
         return vec_examples
@@ -150,7 +151,7 @@ class Parser:
             if (i1 > 0) and (h1 == i0):
                 return 1
             elif (i1 >= 0) and (h0 == i1) and \
-                (not any([x for x in buf if ex['head'][x] == i0])):
+                 (not any([x for x in buf if ex['head'][x] == i0])):
                 return 2
             else:
                 return None if len(buf) == 0 else 0
@@ -158,7 +159,7 @@ class Parser:
             if (i1 > 0) and (h1 == i0):
                 return 1 + l1 if (l1 >= 0) and (l1 < self.n_deprel) else None
             elif (i1 >= 0) and (h0 == i1) and \
-                (not any([x for x in buf if ex['head'][x] == i0])):
+                 (not any([x for x in buf if ex['head'][x] == i0])):
                 return 1 + self.n_deprel + l0 if (l0 >= 0) and (l0 < self.n_deprel) else None
             else:
                 return None if len(buf) == 0 else 0
@@ -201,7 +202,8 @@ class Parser:
     def build_fn(self, emb={}, dropout_rate=0.0):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
-        #TODO: add in_l
+
+        # TODO: add in_l
         l_in = lasagne.layers.InputLayer((None, self.n_features), in_x)
 
         embeddings = np.random.normal(0, 0.01, (self.n_tokens, self.embedding_size)).astype(_floatX)
@@ -213,7 +215,7 @@ class Parser:
                 embeddings[i] = emb[token.lower()]
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
 
-        #default is relu
+        # Default is relu
         network = lasagne.layers.DenseLayer(l_emb, self.hidden_size)
         if dropout_rate > 0:
             network = lasagne.layers.DropoutLayer(network, p=dropout_rate)
@@ -286,7 +288,7 @@ class Parser:
                     else:
                         arcs[i].append((stack[i][-2], stack[i][-1], tran - self.n_deprel - 1))
                         stack[i] = stack[i][:-1]
-            ind = [i for i in ind if step < steps[i]]
+            ind = [k for k in ind if step < steps[k]]
 
         UAS = LAS = all_tokens = 0.0
         for i, ex in enumerate(eval_set):
@@ -299,6 +301,7 @@ class Parser:
             LAS += sum([1 for (pred_l, gold_l) in zip(label[1:], ex['label'][1:]) if pred_l == gold_l])
             all_tokens += len(head) - 1
         return UAS / all_tokens, LAS / all_tokens
+
 
 def main(args):
 
@@ -368,7 +371,7 @@ def main(args):
 
                 logging.info('Parse the dev set..')
                 UAS, LAS = nndep.parse(dev_set)
-                logging.info('UAS = %.4f' % UAS)
+                logging.info('UAS: %.4f' % UAS)
 
 if __name__ == '__main__':
     args = config.get_args()
