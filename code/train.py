@@ -238,7 +238,7 @@ class Parser:
 
         test_prob = lasagne.layers.get_output(network, deterministic=True)
         pred = T.argmax(test_prob, axis=-1)
-        acc = T.sum(T.eq(pred, in_y))
+        acc = T.mean(T.eq(pred, in_y))
         self.test_fn = theano.function([in_x, in_y], [acc, pred])
 
 def main(args):
@@ -287,14 +287,25 @@ def main(args):
     for epoch in range(args.n_epoches):
         minibatches = utils.get_minibatches(len(train_examples), args.batch_size)
         for index, minibatch in enumerate(minibatches):
-            mb_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
-            mb_y = [train_examples[t][1] for t in minibatch]
+            train_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
+            train_y = [train_examples[t][1] for t in minibatch]
 
-            train_loss = nndep.train_fn(mb_x, mb_y)
+            acc, _ = nndep.test_fn(train_x, train_y)
+
+            train_loss = nndep.train_fn(train_x, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
+            logging.info('Train acc. (before update): %.4f' % acc)
             n_updates += 1
 
+            if n_updates % args.eval_iter == 0:
+                all_acc = 0.0
+                for mb in utils.get_minibatches(len(dev_examples), args.batch_size):
+                    dev_x = np.array([dev_examples[t][0] for t in mb]).astype('int32')
+                    dev_y = [dev_examples[t][1] for t in mb]
+                    acc, _ = nndep.test_fn(dev_x, dev_y)
+                    all_acc += acc * len(mb)
+                logging.info('Dev acc.: %.4f' % (all_acc / len(dev_examples)))
 
 if __name__ == '__main__':
     args = config.get_args()

@@ -84,9 +84,11 @@ def get_args():
                         default=100,
                         help='Number of epoches')
 
+    #TODO: add l2 regularization
+    
     parser.add_argument('--eval_iter',
                         type=int,
-                        default=100,
+                        default=10,
                         help='Evaluation on dev set after K updates')
 
     parser.add_argument('--dropout_rate',
@@ -96,7 +98,7 @@ def get_args():
 
     parser.add_argument('--optimizer',
                         type=str,
-                        default='sgd',
+                        default='adam',
                         help='Optimizer')
 
     parser.add_argument('--max_words',
