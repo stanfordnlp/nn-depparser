@@ -124,6 +124,7 @@ def get_args():
                         default=False,
                         help='Whether to use the dependency labels, defauls is False')
 
+    #TODO: havent used single_root yet..
     parser.add_argument('--single_root',
                         type='bool',
                         default=True,

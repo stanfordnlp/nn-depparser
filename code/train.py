@@ -19,12 +19,16 @@ class Parser:
     def __init__(self, dataset, args):
         logging.info('Build dictionary for dependency deprel.')
         deprel = list(set([w for ex in dataset for w in ex['label']]))
-        tok2id = {L_PREFIX + l : idx for (idx, l) in enumerate(deprel)}
+        tok2id = {L_PREFIX + l : i for (i, l) in enumerate(deprel)}
         tok2id[L_PREFIX + UNK] = self.L_UNK = len(tok2id)
         tok2id[L_PREFIX + NULL] = self.L_NULL = len(tok2id)
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
 
-        if args.unlabeled:
+        self.unlabeled = args.unlabeled
+        self.use_pos = args.use_pos
+        self.use_dep = args.use_dep
+
+        if self.unlabeled:
             trans = ['S', 'L', 'R']
             self.n_deprel = 1
         else:
@@ -32,8 +36,8 @@ class Parser:
             self.n_deprel = len(deprel)
 
         self.n_trans = len(trans)
-        self.tran2id = {t: idx for (idx, t) in enumerate(trans)}
-        self.id2tran = {idx: t for (idx, t) in enumerate(trans)}
+        self.tran2id = {t: i for (i, t) in enumerate(trans)}
+        self.id2tran = {i: t for (i, t) in enumerate(trans)}
 
         logging.info('Build dictionary for part-of-speech tags.')
         tok2id.update(utils.build_dict([P_PREFIX + w for ex in dataset for w in ex['pos']],
@@ -56,7 +60,6 @@ class Parser:
         self.n_tokens = len(tok2id)
         self.embedding_size = args.embedding_size
         self.hidden_size = args.hidden_size
-
 
         logging.info('#deprels: %d' % self.n_deprel)
         logging.info('#transitions: %d' % self.n_trans)
@@ -81,7 +84,7 @@ class Parser:
                                  'head': head, 'label': label})
         return vec_examples
 
-    def extract_features(self, stack, buf, arcs, ex, use_pos=True, use_dep=True):
+    def extract_features(self, stack, buf, arcs, ex):
         """
             Extract features based on stack / buf / arcs.
             Hardcoded for now.
@@ -95,7 +98,7 @@ class Parser:
         stack = stack[::-1]
         features = [ex['word'][x] for x in stack[:3]] + [self.NULL] * (3 - len(stack))
         features += [ex['word'][x] for x in buf[:3]] + [self.NULL] * (3 - len(buf))
-        if use_pos:
+        if self.use_pos:
             features += [ex['pos'][x] for x in stack[:3]] + [self.P_NULL] * (3 - len(stack))
             features += [ex['pos'][x] for x in buf[:3]] + [self.P_NULL] * (3 - len(buf))
 
@@ -111,28 +114,28 @@ class Parser:
                 features += [ex['word'][x] for x in llc] + [self.NULL] * (1 - len(llc))
                 features += [ex['word'][x] for x in rrc] + [self.NULL] * (1 - len(rrc))
 
-                if use_pos:
+                if self.use_pos:
                     features += [ex['pos'][x] for x in lc] + [self.P_NULL] * (2 - len(lc))
                     features += [ex['pos'][x] for x in rc] + [self.P_NULL] * (2 - len(rc))
                     features += [ex['pos'][x] for x in llc] + [self.P_NULL] * (1 - len(llc))
                     features += [ex['pos'][x] for x in rrc] + [self.P_NULL] * (1 - len(rrc))
 
-                if use_dep:
+                if self.use_dep:
                     features += [ex['label'][x - 1] for x in llc] + [self.L_NULL] * (1 - len(llc))
                     features += [ex['label'][x - 1] for x in rrc] + [self.L_NULL] * (1 - len(rrc))
                     features += [ex['label'][x - 1] for x in lc] + [self.L_NULL] * (2 - len(lc))
                     features += [ex['label'][x - 1] for x in rc] + [self.L_NULL] * (2 - len(rc))
             else:
                 features += [self.NULL] * 6
-                if use_pos:
+                if self.use_pos:
                     features += [self.P_NULL] * 6
-                if use_dep:
+                if self.use_dep:
                     features += [self.L_NULL] * 6
 
         assert len(features) == self.n_features
         return features
 
-    def get_oracle(self, stack, buf, ex, unlabeled):
+    def get_oracle(self, stack, buf, ex):
         if len(stack) < 2:
             return 0
 
@@ -143,7 +146,7 @@ class Parser:
         l0 = ex['label'][i0]
         l1 = ex['label'][i1]
 
-        if unlabeled:
+        if self.unlabeled:
             if (i1 > 0) and (h1 == i0):
                 return 1
             elif (i1 >= 0) and (h0 == i1) and \
@@ -160,7 +163,7 @@ class Parser:
             else:
                 return None if len(buf) == 0 else 0
 
-    def create_instances(self, examples, args):
+    def create_instances(self, examples):
         all_instances = []
         succ = 0
         for id, ex in enumerate(examples):
@@ -174,10 +177,10 @@ class Parser:
             arcs = []
             instances = []
             for i in xrange(n_words * 2):
-                gold_t = self.get_oracle(stack, buf, ex, args.unlabeled)
+                gold_t = self.get_oracle(stack, buf, ex)
                 if gold_t is None:
                     break
-                instances.append((self.extract_features(stack, buf, arcs, ex, args.use_pos, args.use_dep), gold_t))
+                instances.append((self.extract_features(stack, buf, arcs, ex), gold_t))
                 if gold_t == 0:
                     stack.append(buf[0])
                     buf = buf[1:]
@@ -203,11 +206,11 @@ class Parser:
 
         embeddings = np.random.normal(0, 0.01, (self.n_tokens, self.embedding_size)).astype(_floatX)
         for token in self.tok2id:
-            idx = self.tok2id[token]
+            i = self.tok2id[token]
             if token in emb:
-                embeddings[idx] = emb[token]
+                embeddings[i] = emb[token]
             elif token.lower() in emb:
-                embeddings[idx] = emb[token.lower()]
+                embeddings[i] = emb[token.lower()]
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
 
         #default is relu
@@ -239,7 +242,65 @@ class Parser:
         test_prob = lasagne.layers.get_output(network, deterministic=True)
         pred = T.argmax(test_prob, axis=-1)
         acc = T.mean(T.eq(pred, in_y))
-        self.test_fn = theano.function([in_x, in_y], [acc, pred])
+        self.test_fn = theano.function([in_x, in_y], acc)
+        self.pred_fn = theano.function([in_x], test_prob)
+
+    def legal_labels(self, stack, buf):
+        labels = [1] if len(buf) > 0 else [0]
+        labels += ([1] if len(stack) > 2 else [0]) * self.n_deprel
+        labels += ([1] if len(stack) >= 2 else [0]) * self.n_deprel
+        return labels
+
+    def parse(self, eval_set, eval_batch_size=1000):
+        ind = []
+        steps = []
+        stack = []
+        buf = []
+        arcs = []
+        for i in xrange(len(eval_set)):
+            n_words = len(eval_set[i]['word']) - 1
+            ind.append(i)
+            steps.append(n_words * 2)
+            stack.append([0])
+            buf.append([i + 1 for i in xrange(n_words)])
+            arcs.append([])
+
+        step = 0
+        while len(ind) > 0:
+            step = step + 1
+            for mb in utils.get_minibatches(len(ind), eval_batch_size, shuffle=False):
+                #   def extract_features(self, stack, buf, arcs, ex):
+                mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]], arcs[ind[k]], eval_set[ind[k]]) for k in mb]
+                mb_x = np.array(mb_x).astype('int32')
+                legal_labels = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
+                pred_x = np.argmax(np.multiply(self.pred_fn(mb_x), legal_labels), axis=-1)
+
+                for k, tran in zip(mb, pred_x):
+                    i = ind[k]
+                    if tran == 0:
+                        stack[i].append(buf[i][0])
+                        buf[i] = buf[i][1:]
+                    elif tran <= self.n_deprel:
+                        arcs[i].append((stack[i][-1], stack[i][-2], tran - 1))
+                        stack[i] = stack[i][:-2] + [stack[i][-1]]
+                    else:
+                        arcs[i].append((stack[i][-2], stack[i][-1], tran - self.n_deprel - 1))
+                        stack[i] = stack[i][:-1]
+            ind = [i for i in ind if step < steps[i]]
+
+        UAS = 0.0
+        LAS = 0.0
+        all_tokens = 0
+        for i, ex in enumerate(eval_set):
+            head = [-1] * len(ex['word'])
+            label = [-1] * len(ex['word'])
+            for h, t, l in arcs[i]:
+                head[t] = h
+                label[t] = l
+            UAS += sum([1 for (pred_h, gold_h) in zip(head[1:], ex['head'][1:]) if pred_h == gold_h])
+            LAS += sum([1 for (pred_l, gold_l) in zip(label[1:], ex['label'][1:]) if pred_l == gold_l])
+            all_tokens += len(head) - 1
+        return UAS / all_tokens, LAS / all_tokens
 
 def main(args):
 
@@ -259,9 +320,9 @@ def main(args):
     dev_set = nndep.vectorize(dev_set)
 
     logging.info('Create training instances...')
-    train_examples = nndep.create_instances(train_set, args)
+    train_examples = nndep.create_instances(train_set)
     logging.info('Create development instances...')
-    dev_examples = nndep.create_instances(dev_set, args)
+    dev_examples = nndep.create_instances(dev_set)
     logging.info('-' * 100)
 
     # Load embedding file
@@ -290,7 +351,7 @@ def main(args):
             train_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
             train_y = [train_examples[t][1] for t in minibatch]
 
-            acc, _ = nndep.test_fn(train_x, train_y)
+            acc = nndep.test_fn(train_x, train_y)
 
             train_loss = nndep.train_fn(train_x, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
@@ -303,12 +364,20 @@ def main(args):
                 for mb in utils.get_minibatches(len(dev_examples), args.batch_size):
                     dev_x = np.array([dev_examples[t][0] for t in mb]).astype('int32')
                     dev_y = [dev_examples[t][1] for t in mb]
-                    acc, _ = nndep.test_fn(dev_x, dev_y)
+                    acc = nndep.test_fn(dev_x, dev_y)
                     all_acc += acc * len(mb)
                 logging.info('Dev acc.: %.4f' % (all_acc / len(dev_examples)))
 
+                logging.info('Parse the dev set..')
+                UAS, LAS = nndep.parse(dev_set)
+                logging.info('UAS = %.4f' % UAS)
+
 if __name__ == '__main__':
     args = config.get_args()
+    args.use_dep = args.use_dep and (not args.unlabeled)
+
+    np.random.seed(args.random_seed)
+    lasagne.random.set_rng(np.random.RandomState(args.random_seed))
 
     if args.job_id is None:
         logging.basicConfig(level=logging.DEBUG,
@@ -317,12 +386,9 @@ if __name__ == '__main__':
         logging.basicConfig(filename=os.path.join(config.LOG_DIR, args.job_id + '.txt'),
                             filemode='w', level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M:%S')
-    args.use_dep = args.use_dep and (not args.unlabeled)
 
     logging.info(' '.join(sys.argv))
     logging.info(args)
     logging.info('-' * 100)
 
-    np.random.seed(args.random_seed)
-    lasagne.random.set_rng(np.random.RandomState(args.random_seed))
     main(args)
