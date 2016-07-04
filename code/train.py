@@ -288,9 +288,7 @@ class Parser:
                         stack[i] = stack[i][:-1]
             ind = [i for i in ind if step < steps[i]]
 
-        UAS = 0.0
-        LAS = 0.0
-        all_tokens = 0
+        UAS = LAS = all_tokens = 0.0
         for i, ex in enumerate(eval_set):
             head = [-1] * len(ex['word'])
             label = [-1] * len(ex['word'])
