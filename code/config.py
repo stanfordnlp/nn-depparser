@@ -8,6 +8,9 @@ DATA_DIR = '/Users/danqi/Documents/research/datasets/dependency-treebanks/' \
     if _platform == 'darwin' \
     else '/u/nlp/data/dependency_treebanks/'
 
+LOG_DIR = '../logs/'
+MODEL_DIR = '../models/'
+
 _floatX = theano.config.floatX
 
 P_PREFIX = '<p>:'
@@ -85,7 +88,7 @@ def get_args():
                         help='Number of epoches')
 
     #TODO: add l2 regularization
-    
+
     parser.add_argument('--eval_iter',
                         type=int,
                         default=10,
