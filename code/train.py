@@ -182,7 +182,9 @@ class Parser:
                 gold_t = self.get_oracle(stack, buf, ex)
                 if gold_t is None:
                     break
-                instances.append((self.extract_features(stack, buf, arcs, ex), gold_t))
+                legal_labels = self.legal_labels(stack, buf)
+                assert legal_labels[gold_t] == 1
+                instances.append((self.extract_features(stack, buf, arcs, ex), legal_labels, gold_t))
                 if gold_t == 0:
                     stack.append(buf[0])
                     buf = buf[1:]
@@ -203,10 +205,9 @@ class Parser:
     def build_fn(self, emb={}, dropout_rate=0.0, l2_reg=0.0):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
+        in_l = T.matrix('l')
 
-        # TODO: add in_l
         l_in = lasagne.layers.InputLayer((None, self.n_features), in_x)
-
         embeddings = np.random.normal(0, 0.01, (self.n_tokens, self.embedding_size)).astype(_floatX)
         for token in self.tok2id:
             i = self.tok2id[token]
@@ -226,7 +227,8 @@ class Parser:
         network = lasagne.layers.DenseLayer(network, self.n_trans,
                                             nonlinearity=lasagne.nonlinearities.softmax)
 
-        train_prob = lasagne.layers.get_output(network, deterministic=False)
+        train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
+        train_prob = train_prob / train_prob.sum(axis=1).reshape((train_prob.shape[0], 1))
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
         if l2_reg > 0:
             loss += l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
@@ -242,13 +244,13 @@ class Parser:
             updates = lasagne.updates.adagrad(loss, params, learning_rate=args.learning_rate)
         else:
             raise NotImplementedError('optimizer = %s' % args.optimizer)
-        self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
+        self.train_fn = theano.function([in_x, in_l, in_y], loss, updates=updates)
 
-        test_prob = lasagne.layers.get_output(network, deterministic=True)
+        test_prob = lasagne.layers.get_output(network, deterministic=True) * in_l
         pred = T.argmax(test_prob, axis=-1)
         acc = T.mean(T.eq(pred, in_y))
-        self.test_fn = theano.function([in_x, in_y], acc)
-        self.pred_fn = theano.function([in_x], test_prob)
+        self.test_fn = theano.function([in_x, in_l, in_y], acc)
+        self.pred_fn = theano.function([in_x, in_l], pred)
 
     def legal_labels(self, stack, buf):
         labels = [1] if len(buf) > 0 else [0]
@@ -280,9 +282,10 @@ class Parser:
                 #   def extract_features(self, stack, buf, arcs, ex):
                 mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]], arcs[ind[k]], eval_set[ind[k]]) for k in mb]
                 mb_x = np.array(mb_x).astype('int32')
-                legal_labels = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
-                pred_x = np.argmax(np.multiply(self.pred_fn(mb_x), legal_labels), axis=-1)
-                for k, tran in zip(mb, pred_x):
+                mb_l = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
+                mb_l = np.array(mb_l).astype(_floatX)
+                pred = self.pred_fn(mb_x, mb_l)
+                for k, tran in zip(mb, pred):
                     i = ind[k]
                     if tran == 0:
                         stack[i].append(buf[i][0])
@@ -360,9 +363,10 @@ def main(args):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
             train_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
-            train_y = [train_examples[t][1] for t in minibatch]
+            train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
+            train_y = [train_examples[t][2] for t in minibatch]
 
-            train_loss = nndep.train_fn(train_x, train_y)
+            train_loss = nndep.train_fn(train_x, train_l, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
             n_updates += 1
@@ -373,15 +377,18 @@ def main(args):
                 all_acc = 0.0
                 for mb in utils.get_minibatches(size, args.batch_size, shuffle=False):
                     train_x = np.array([train_examples[ind[t]][0] for t in mb]).astype('int32')
-                    train_y = [train_examples[ind[t]][1] for t in mb]
-                    all_acc += nndep.test_fn(train_x, train_y) * len(mb)
+                    train_l = np.array([train_examples[ind[t]][1] for t in mb]).astype(_floatX)
+                    print train_l
+                    train_y = [train_examples[ind[t]][2] for t in mb]
+                    all_acc += nndep.test_fn(train_x, train_l, train_y) * len(mb)
                 logging.info('Train acc. (%d): %.4f' % (size, all_acc / size))
 
                 all_acc = 0.0
                 for mb in utils.get_minibatches(n_dev, args.batch_size, shuffle=False):
                     dev_x = np.array([dev_examples[t][0] for t in mb]).astype('int32')
-                    dev_y = [dev_examples[t][1] for t in mb]
-                    all_acc += nndep.test_fn(dev_x, dev_y) * len(mb)
+                    dev_l = np.array([dev_examples[t][1] for t in mb]).astype(_floatX)
+                    dev_y = [dev_examples[t][2] for t in mb]
+                    all_acc += nndep.test_fn(dev_x, dev_l, dev_y) * len(mb)
                 logging.info('Dev acc. (%d):  %.4f' % (n_dev, all_acc / n_dev))
 
         logging.info('Parse the dev set..')
