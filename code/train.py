@@ -200,7 +200,7 @@ class Parser:
         logging.info('#Instances: %d' % len(all_instances))
         return all_instances
 
-    def build_fn(self, emb={}, dropout_rate=0.0):
+    def build_fn(self, emb={}, dropout_rate=0.0, l2_reg=0.0):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
 
@@ -228,6 +228,8 @@ class Parser:
 
         train_prob = lasagne.layers.get_output(network, deterministic=False)
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
+        if l2_reg > 0:
+            loss += l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
         params = lasagne.layers.get_all_params(network, trainable=True)
 
         if args.optimizer == 'sgd':
@@ -347,7 +349,7 @@ def main(args):
 
     # Build functions
     logging.info('Build functions...')
-    nndep.build_fn(embeddings, args.dropout_rate)
+    nndep.build_fn(embeddings, args.dropout_rate, args.l2_reg)
     logging.info('Done.')
 
     # Train

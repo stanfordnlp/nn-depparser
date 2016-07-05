@@ -92,7 +92,10 @@ def get_args():
                         type=float,
                         default=0.1)
 
-    #TODO: add l2 regularization
+    parser.add_argument('--l2_reg',
+                        type=float,
+                        default=1e-6,
+                        help='l2 regularization')
 
     parser.add_argument('--eval_iter',
                         type=int,
