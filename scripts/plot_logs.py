@@ -43,8 +43,8 @@ def read_log(uid):
         with open('../logs/' + cuid + '.txt') as f:
             for line in f.readlines():
                 sline = line.strip()
-                # if sline.startswith('Train'):
-                #     train_acc.append(float(sline.split(' ')[-2]))
+                if 'Train acc' in sline:
+                    train_acc.append(float(sline.split(' ')[-1]))
                 if 'Dev acc' in sline:
                     dev_acc.append(float(sline.split(' ')[-1]))
                 ts = get_timestamp(line)
@@ -52,9 +52,9 @@ def read_log(uid):
                 last_ts = ts if ts is not None else last_ts
                 last_update = update if update is not None else last_update
 
-    # if len(train_acc) > 0:
-    #     k = np.argmax(train_acc)
-    #     print 'job = %s, best train accuracy: %d / %d: %.4f' % (uid, k, len(train_acc), train_acc[k])
+    if len(train_acc) > 0:
+        k = np.argmax(train_acc)
+        print 'job = %s, best train accuracy: %d / %d: %.4f' % (uid, k, len(train_acc), train_acc[k])
 
     if len(dev_acc) > 0:
         k = np.argmax(dev_acc)
@@ -63,8 +63,7 @@ def read_log(uid):
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])
     print 'all jobs: %s' % (', '.join(all_jobs))
-    # return train_acc
-    return dev_acc
+    return train_acc, dev_acc
 
 if __name__ == '__main__':
     argv = sys.argv
@@ -81,11 +80,11 @@ if __name__ == '__main__':
     jobs = sorted(argv)
     colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k')
     for (idx, uid) in enumerate(jobs):
-        dev_acc = read_log(uid)
+        train_acc, dev_acc = read_log(uid)
         if not silent:
-            # plt.plot(range(len(train_acc)), train_acc, '.', color=colors[idx % len(colors)],
-            #          label=uid + ' (train)', alpha=0.3)
-            plt.plot(range(len(dev_acc)), dev_acc, 'x-', color=colors[idx % len(colors)],
+            plt.plot(range(len(train_acc)), train_acc, '.', color=colors[idx % len(colors)],
+                     label=uid + ' (train)', alpha=0.3)
+            plt.plot(range(len(dev_acc)), dev_acc, '-', color=colors[idx % len(colors)],
                      label=uid + ' (dev)')
 
     if not silent:
