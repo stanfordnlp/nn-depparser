@@ -224,15 +224,17 @@ class Parser:
         network = lasagne.layers.DenseLayer(network, self.hidden_size)
         if dropout_rate > 0:
             network = lasagne.layers.DropoutLayer(network, p=dropout_rate)
+
         network = lasagne.layers.DenseLayer(network, self.n_trans,
                                             nonlinearity=lasagne.nonlinearities.softmax)
 
         train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
-        train_prob = train_prob / train_prob.sum(axis=1).reshape((train_prob.shape[0], 1))
+        train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
         if l2_reg > 0:
             loss += l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
         params = lasagne.layers.get_all_params(network, trainable=True)
+
 
         if args.optimizer == 'sgd':
             updates = lasagne.updates.sgd(loss, params, learning_rate=args.learning_rate)
@@ -369,6 +371,9 @@ def main(args):
             train_loss = nndep.train_fn(train_x, train_l, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
+
+            if train_loss != train_loss:
+                raise Exception('train_loss is NaN.')
             n_updates += 1
 
             if n_updates % args.eval_iter == 0:
@@ -378,7 +383,6 @@ def main(args):
                 for mb in utils.get_minibatches(size, args.batch_size, shuffle=False):
                     train_x = np.array([train_examples[ind[t]][0] for t in mb]).astype('int32')
                     train_l = np.array([train_examples[ind[t]][1] for t in mb]).astype(_floatX)
-                    print train_l
                     train_y = [train_examples[ind[t]][2] for t in mb]
                     all_acc += nndep.test_fn(train_x, train_l, train_y) * len(mb)
                 logging.info('Train acc. (%d): %.4f' % (size, all_acc / size))
