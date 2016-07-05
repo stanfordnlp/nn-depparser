@@ -7,7 +7,8 @@ import logging
 import time
 
 import config
-from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT, _floatX
+from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT, PUNCT
+from config import _floatX
 
 import theano
 import theano.tensor as T
@@ -253,6 +254,9 @@ class Parser:
         labels += ([1] if len(stack) >= 2 else [0]) * self.n_deprel
         return labels
 
+    def punct(self, pos):
+        return (self.id2tok[pos] in PUNCT)
+
     def parse(self, eval_set, eval_batch_size=1000):
         ind = []
         steps = []
@@ -276,7 +280,6 @@ class Parser:
                 mb_x = np.array(mb_x).astype('int32')
                 legal_labels = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
                 pred_x = np.argmax(np.multiply(self.pred_fn(mb_x), legal_labels), axis=-1)
-
                 for k, tran in zip(mb, pred_x):
                     i = ind[k]
                     if tran == 0:
@@ -297,9 +300,11 @@ class Parser:
             for h, t, l in arcs[i]:
                 head[t] = h
                 label[t] = l
-            UAS += sum([1 for (pred_h, gold_h) in zip(head[1:], ex['head'][1:]) if pred_h == gold_h])
-            LAS += sum([1 for (pred_l, gold_l) in zip(label[1:], ex['label'][1:]) if pred_l == gold_l])
-            all_tokens += len(head) - 1
+            UAS += sum([1 for (pred_h, gold_h, pos) in zip(head[1:], ex['head'][1:], ex['pos'][1:])
+                        if pred_h == gold_h and not self.punct(pos)])
+            LAS += sum([1 for (pred_l, gold_l, pos) in zip(label[1:], ex['label'][1:], ex['pos'][1:])
+                       if pred_l == gold_l and not self.punct(pos)])
+            all_tokens += sum([1 for pos in ex['pos'][1:] if not self.punct(pos)])
         return UAS / all_tokens, LAS / all_tokens
 
 
@@ -313,6 +318,8 @@ def main(args):
     logging.info('Load development data...')
     dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file), args.lowercase)
     logging.info('-' * 100)
+    n_train = len(train_set)
+    n_dev = len(dev_set)
 
     nndep = Parser(train_set, args)
     logging.info('-' * 100)
@@ -347,31 +354,36 @@ def main(args):
     start_time = time.time()
     n_updates = 0
     for epoch in range(args.n_epoches):
-        minibatches = utils.get_minibatches(len(train_examples), args.batch_size)
+        minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
             train_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
             train_y = [train_examples[t][1] for t in minibatch]
 
-            acc = nndep.test_fn(train_x, train_y)
-
             train_loss = nndep.train_fn(train_x, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
-            logging.info('Train acc. (before update): %.4f' % acc)
             n_updates += 1
 
             if n_updates % args.eval_iter == 0:
+                size = min(n_train, n_dev)
+                ind = np.random.choice(n_train, size, replace=False)
                 all_acc = 0.0
-                for mb in utils.get_minibatches(len(dev_examples), args.batch_size):
+                for mb in utils.get_minibatches(size, args.batch_size, shuffle=False):
+                    train_x = np.array([train_examples[ind[t]][0] for t in mb]).astype('int32')
+                    train_y = [train_examples[ind[t]][1] for t in mb]
+                    all_acc += nndep.test_fn(train_x, train_y) * len(mb)
+                logging.info('Train acc. (%d): %.4f' % (size, all_acc / size))
+
+                all_acc = 0.0
+                for mb in utils.get_minibatches(n_dev, args.batch_size, shuffle=False):
                     dev_x = np.array([dev_examples[t][0] for t in mb]).astype('int32')
                     dev_y = [dev_examples[t][1] for t in mb]
-                    acc = nndep.test_fn(dev_x, dev_y)
-                    all_acc += acc * len(mb)
-                logging.info('Dev acc.: %.4f' % (all_acc / len(dev_examples)))
+                    all_acc += nndep.test_fn(dev_x, dev_y) * len(mb)
+                logging.info('Dev acc. (%d):  %.4f' % (n_dev, all_acc / n_dev))
 
         logging.info('Parse the dev set..')
         UAS, LAS = nndep.parse(dev_set)
-        logging.info('UAS: %.4f' % UAS)
+        logging.info('Epoch = %d, UAS: %.4f' % (epoch, UAS))
 
 if __name__ == '__main__':
     args = config.get_args()
