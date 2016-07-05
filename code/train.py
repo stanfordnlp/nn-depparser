@@ -318,8 +318,6 @@ def main(args):
     logging.info('Load development data...')
     dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file), args.lowercase)
     logging.info('-' * 100)
-    n_train = len(train_set)
-    n_dev = len(dev_set)
 
     nndep = Parser(train_set, args)
     logging.info('-' * 100)
@@ -332,6 +330,9 @@ def main(args):
     logging.info('Create development instances...')
     dev_examples = nndep.create_instances(dev_set)
     logging.info('-' * 100)
+
+    n_train = len(train_examples)
+    n_dev = len(dev_examples)
 
     # Load embedding file
     if args.embedding_file is None:
