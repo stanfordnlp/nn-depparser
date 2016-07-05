@@ -223,18 +223,20 @@ class Parser:
                 embeddings[i] = emb[token.lower()]
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
 
-        if self.nonlinearity == 'relu':
-            nonlinearity_func = lasagne.nonlinearities.rectify
-        elif self.nonlinearity == 'tanh':
-            nonlinearity_func = lasagne.nonlinearities.tanh
-        elif self.nonlinearity == 'leaky_relu':
-            nonlinearity_func = lasagne.nonlinearities.leaky_rectify
-        else:
-            raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
-
         network = l_emb
         for _ in xrange(self.n_layers):
-            network = lasagne.layers.DenseLayer(network, self.hidden_size, nonlinearity=nonlinearity_func)
+            if self.nonlinearity == 'relu':
+                network = lasagne.layers.DenseLayer(network, self.hidden_size,
+                                                    b=lasagne.init.Constant(0.2),
+                                                    nonlinearity=lasagne.nonlinearities.rectify)
+            elif self.nonlinearity == 'tanh':
+                network = lasagne.layers.DenseLayer(network, self.hidden_size,
+                                                    nonlinearity=lasagne.nonlinearities.tanh)
+            elif self.nonlinearity == 'leaky_relu':
+                network = lasagne.layers.DenseLayer(network, self.hidden_size,
+                                                    nonlinearity=lasagne.nonlinearities.leaky_rectify)
+            else:
+                raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
             if self.dropout_rate > 0:
                 network = lasagne.layers.DropoutLayer(network, p=self.dropout_rate)
 
