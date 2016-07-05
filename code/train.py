@@ -32,8 +32,9 @@ class Parser:
         self.n_layers = args.n_layers
         self.nonlinearity = args.nonlinearity
         self.optimizer = args.optimizer
-        self.learning_rate=args.learning_rate
+        self.learning_rate = args.learning_rate
         self.dropout_rate = args.dropout_rate
+        self.b_init = args.b_init
         self.l2_reg = args.l2_reg
         self.embedding_size = args.embedding_size
         self.hidden_size = args.hidden_size
@@ -227,7 +228,7 @@ class Parser:
         for _ in xrange(self.n_layers):
             if self.nonlinearity == 'relu':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
-                                                    b=lasagne.init.Constant(0.2),
+                                                    b=lasagne.init.Constant(self.b_init),
                                                     nonlinearity=lasagne.nonlinearities.rectify)
             elif self.nonlinearity == 'tanh':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
@@ -251,7 +252,6 @@ class Parser:
             loss += self.l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
         params = lasagne.layers.get_all_params(network, trainable=True)
 
-
         if self.optimizer == 'sgd':
             updates = lasagne.updates.sgd(loss, params, learning_rate=self.learning_rate)
         elif self.optimizer == 'adam':
@@ -261,7 +261,7 @@ class Parser:
         elif self.optimizer == 'adagrad':
             updates = lasagne.updates.adagrad(loss, params, learning_rate=self.learning_rate)
         else:
-            raise NotImplementedError('optimizer = %s' % optimizer)
+            raise NotImplementedError('optimizer = %s' % self.optimizer)
         self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
 
         test_prob = lasagne.layers.get_output(network, deterministic=True) * in_l

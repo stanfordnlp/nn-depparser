@@ -21,6 +21,7 @@ ROOT = '<ROOT>'
 
 PUNCT = [P_PREFIX + p for p in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]]
 
+
 def str2bool(v):
     return v.lower() in ('yes', 'true', 't', '1', 'y')
 
@@ -107,6 +108,11 @@ def get_args():
                         default=1e-6,
                         help='l2 regularization')
 
+    parser.add_argument('--b_init',
+                        type=float,
+                        default=0.0,
+                        help='Initialization of b in DenseLayer')
+
     parser.add_argument('--eval_iter',
                         type=int,
                         default=100,
@@ -142,7 +148,7 @@ def get_args():
                         default=False,
                         help='Whether to use the dependency labels, defauls is False')
 
-    #TODO: haven't used single_root yet..
+    # TODO: haven't used single_root yet..
     parser.add_argument('--single_root',
                         type='bool',
                         default=True,
