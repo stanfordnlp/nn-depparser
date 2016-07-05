@@ -369,9 +369,9 @@ def main(args):
                     all_acc += acc * len(mb)
                 logging.info('Dev acc.: %.4f' % (all_acc / len(dev_examples)))
 
-                logging.info('Parse the dev set..')
-                UAS, LAS = nndep.parse(dev_set)
-                logging.info('UAS: %.4f' % UAS)
+        logging.info('Parse the dev set..')
+        UAS, LAS = nndep.parse(dev_set)
+        logging.info('UAS: %.4f' % UAS)
 
 if __name__ == '__main__':
     args = config.get_args()

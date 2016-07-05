@@ -91,7 +91,7 @@ def get_args():
 
     parser.add_argument('--eval_iter',
                         type=int,
-                        default=10,
+                        default=100,
                         help='Evaluation on dev set after K updates')
 
     parser.add_argument('--dropout_rate',
