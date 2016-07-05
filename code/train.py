@@ -230,13 +230,13 @@ class Parser:
         params = lasagne.layers.get_all_params(network, trainable=True)
 
         if args.optimizer == 'sgd':
-            updates = lasagne.updates.sgd(loss, params, 0.1)
+            updates = lasagne.updates.sgd(loss, params, learning_rate=args.learning_rate)
         elif args.optimizer == 'adam':
             updates = lasagne.updates.adam(loss, params)
         elif args.optimizer == 'rmsprop':
             updates = lasagne.updates.rmsprop(loss, params)
         elif args.optimizer == 'adagrad':
-            updates = lasagne.updates.adagrad(loss, params)
+            updates = lasagne.updates.adagrad(loss, params, learning_rate=args.learning_rate)
         else:
             raise NotImplementedError('optimizer = %s' % args.optimizer)
         self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
@@ -337,7 +337,7 @@ def main(args):
         logging.info('#words = %d, dim = %d' % (len(embeddings), args.embedding_size))
         logging.info('-' * 100)
 
-    # Build the network
+    # Build functions
     logging.info('Build functions...')
     nndep.build_fn(embeddings, args.dropout_rate)
     logging.info('Done.')

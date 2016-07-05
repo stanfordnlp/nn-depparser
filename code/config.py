@@ -87,6 +87,10 @@ def get_args():
                         default=100,
                         help='Number of epoches')
 
+    parser.add_argument('--learning_rate',
+                        type=float,
+                        default=0.1)
+
     #TODO: add l2 regularization
 
     parser.add_argument('--eval_iter',
