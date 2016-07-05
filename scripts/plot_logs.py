@@ -63,7 +63,9 @@ def read_log(uid):
     if len(dev_acc) > 0:
         k = np.argmax(dev_acc)
         print 'best dev accuracy: %d / %d: %.4f' % (k, len(dev_acc), dev_acc[k])
-    print 'best UAS : %.4f' % max(UAS)
+
+    if len(UAS) > 0:
+        print 'best UAS : %.4f' % max(UAS)
 
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])

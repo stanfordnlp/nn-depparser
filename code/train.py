@@ -243,8 +243,9 @@ class Parser:
         network = lasagne.layers.DenseLayer(network, self.n_trans,
                                             nonlinearity=lasagne.nonlinearities.softmax)
 
-        train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
-        train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
+        # train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
+        # train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
+        train_prob = lasagne.layers.get_output(network, deterministic=False)
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
         if self.l2_reg > 0:
             loss += self.l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
@@ -261,7 +262,7 @@ class Parser:
             updates = lasagne.updates.adagrad(loss, params, learning_rate=self.learning_rate)
         else:
             raise NotImplementedError('optimizer = %s' % optimizer)
-        self.train_fn = theano.function([in_x, in_l, in_y], loss, updates=updates)
+        self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
 
         test_prob = lasagne.layers.get_output(network, deterministic=True) * in_l
         pred = T.argmax(test_prob, axis=-1)
@@ -383,7 +384,7 @@ def main(args):
             train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
             train_y = [train_examples[t][2] for t in minibatch]
 
-            train_loss = nndep.train_fn(train_x, train_l, train_y)
+            train_loss = nndep.train_fn(train_x, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
 
