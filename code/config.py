@@ -78,6 +78,16 @@ def get_args():
                         default=50,
                         help='Embedding size')
 
+    parser.add_argument('--n_layers',
+                        type=int,
+                        default=2,
+                        help='Number of layers in NN')
+
+    parser.add_argument('--nonlinearity',
+                        type=str,
+                        default='relu',
+                        help='Nonlinearity, default is relu.')
+
     parser.add_argument('--batch_size',
                         type=int,
                         default=100,
@@ -132,7 +142,7 @@ def get_args():
                         default=False,
                         help='Whether to use the dependency labels, defauls is False')
 
-    #TODO: havent used single_root yet..
+    #TODO: haven't used single_root yet..
     parser.add_argument('--single_root',
                         type='bool',
                         default=True,

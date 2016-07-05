@@ -21,6 +21,7 @@ def get_update(line):
 def read_log(uid):
     train_acc = []
     dev_acc = []
+    UAS = []
     all_jobs = []
 
     # Read head file to check if there is a pre-trained model
@@ -47,18 +48,22 @@ def read_log(uid):
                     train_acc.append(float(sline.split(' ')[-1]))
                 if 'Dev acc' in sline:
                     dev_acc.append(float(sline.split(' ')[-1]))
+                if 'UAS' in sline:
+                    UAS.append(float(sline.split(' ')[-1]))
                 ts = get_timestamp(line)
                 update = get_update(line)
                 last_ts = ts if ts is not None else last_ts
                 last_update = update if update is not None else last_update
 
+    print '-' * 20, uid, '-' * 20
     if len(train_acc) > 0:
         k = np.argmax(train_acc)
-        print 'job = %s, best train accuracy: %d / %d: %.4f' % (uid, k, len(train_acc), train_acc[k])
+        print 'best train accuracy: %d / %d: %.4f' % (k, len(train_acc), train_acc[k])
 
     if len(dev_acc) > 0:
         k = np.argmax(dev_acc)
-        print 'job = %s, best dev accuracy: %d / %d: %.4f' % (uid, k, len(dev_acc), dev_acc[k])
+        print 'best dev accuracy: %d / %d: %.4f' % (k, len(dev_acc), dev_acc[k])
+    print 'best UAS : %.4f' % max(UAS)
 
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])

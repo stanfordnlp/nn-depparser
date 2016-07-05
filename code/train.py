@@ -29,6 +29,14 @@ class Parser:
         self.unlabeled = args.unlabeled
         self.use_pos = args.use_pos
         self.use_dep = args.use_dep
+        self.n_layers = args.n_layers
+        self.nonlinearity = args.nonlinearity
+        self.optimizer = args.optimizer
+        self.learning_rate=args.learning_rate
+        self.dropout_rate = args.dropout_rate
+        self.l2_reg = args.l2_reg
+        self.embedding_size = args.embedding_size
+        self.hidden_size = args.hidden_size
 
         if self.unlabeled:
             trans = ['S', 'L', 'R']
@@ -60,8 +68,6 @@ class Parser:
 
         self.n_features = 18 + (18 if args.use_pos else 0) + (12 if args.use_dep else 0)
         self.n_tokens = len(tok2id)
-        self.embedding_size = args.embedding_size
-        self.hidden_size = args.hidden_size
 
         logging.info('#deprels: %d' % self.n_deprel)
         logging.info('#transitions: %d' % self.n_trans)
@@ -202,7 +208,7 @@ class Parser:
         logging.info('#Instances: %d' % len(all_instances))
         return all_instances
 
-    def build_fn(self, emb={}, dropout_rate=0.0, l2_reg=0.0):
+    def build_fn(self, emb={}):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
         in_l = T.matrix('l')
@@ -217,13 +223,20 @@ class Parser:
                 embeddings[i] = emb[token.lower()]
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
 
-        # Default is relu
-        network = lasagne.layers.DenseLayer(l_emb, self.hidden_size)
-        if dropout_rate > 0:
-            network = lasagne.layers.DropoutLayer(network, p=dropout_rate)
-        network = lasagne.layers.DenseLayer(network, self.hidden_size)
-        if dropout_rate > 0:
-            network = lasagne.layers.DropoutLayer(network, p=dropout_rate)
+        if self.nonlinearity == 'relu':
+            nonlinearity_func = lasagne.nonlinearities.rectify
+        elif self.nonlinearity == 'tanh':
+            nonlinearity_func = lasagne.nonlinearities.tanh
+        elif self.nonlinearity == 'leaky_relu':
+            nonlinearity_func = lasagne.nonlinearities.leaky_rectify
+        else:
+            raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
+
+        network = l_emb
+        for _ in xrange(self.n_layers):
+            network = lasagne.layers.DenseLayer(network, self.hidden_size, nonlinearity=nonlinearity_func)
+            if self.dropout_rate > 0:
+                network = lasagne.layers.DropoutLayer(network, p=self.dropout_rate)
 
         network = lasagne.layers.DenseLayer(network, self.n_trans,
                                             nonlinearity=lasagne.nonlinearities.softmax)
@@ -231,21 +244,21 @@ class Parser:
         train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
         train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
-        if l2_reg > 0:
-            loss += l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
+        if self.l2_reg > 0:
+            loss += self.l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
         params = lasagne.layers.get_all_params(network, trainable=True)
 
 
-        if args.optimizer == 'sgd':
-            updates = lasagne.updates.sgd(loss, params, learning_rate=args.learning_rate)
-        elif args.optimizer == 'adam':
+        if self.optimizer == 'sgd':
+            updates = lasagne.updates.sgd(loss, params, learning_rate=self.learning_rate)
+        elif self.optimizer == 'adam':
             updates = lasagne.updates.adam(loss, params)
-        elif args.optimizer == 'rmsprop':
+        elif self.optimizer == 'rmsprop':
             updates = lasagne.updates.rmsprop(loss, params)
-        elif args.optimizer == 'adagrad':
-            updates = lasagne.updates.adagrad(loss, params, learning_rate=args.learning_rate)
+        elif self.optimizer == 'adagrad':
+            updates = lasagne.updates.adagrad(loss, params, learning_rate=self.learning_rate)
         else:
-            raise NotImplementedError('optimizer = %s' % args.optimizer)
+            raise NotImplementedError('optimizer = %s' % optimizer)
         self.train_fn = theano.function([in_x, in_l, in_y], loss, updates=updates)
 
         test_prob = lasagne.layers.get_output(network, deterministic=True) * in_l
@@ -354,7 +367,7 @@ def main(args):
 
     # Build functions
     logging.info('Build functions...')
-    nndep.build_fn(embeddings, args.dropout_rate, args.l2_reg)
+    nndep.build_fn(embeddings)
     logging.info('Done.')
 
     # Train
