@@ -123,6 +123,11 @@ def get_args():
                         default=0.5,
                         help='Dropout rate')
 
+    parser.add_argument('--input_dropout_rate',
+                        type=float,
+                        default=0.0,
+                        help='Input dropout rate')
+
     parser.add_argument('--optimizer',
                         type=str,
                         default='adam',

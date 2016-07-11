@@ -34,6 +34,7 @@ class Parser:
         self.optimizer = args.optimizer
         self.learning_rate = args.learning_rate
         self.dropout_rate = args.dropout_rate
+        self.input_dropout_rate = args.input_dropout_rate
         self.b_init = args.b_init
         self.l2_reg = args.l2_reg
         self.embedding_size = args.embedding_size
@@ -223,8 +224,10 @@ class Parser:
             elif token.lower() in emb:
                 embeddings[i] = emb[token.lower()]
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
-
         network = l_emb
+        if self.input_dropout_rate > 0:
+            network = lasagne.layers.DropoutLayer(network, p=self.input_dropout_rate)
+
         for _ in xrange(self.n_layers):
             if self.nonlinearity == 'relu':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
