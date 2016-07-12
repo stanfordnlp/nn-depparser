@@ -70,7 +70,7 @@ def read_log(uid):
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])
     print 'all jobs: %s' % (', '.join(all_jobs))
-    return train_acc, dev_acc
+    return train_acc, dev_acc, UAS
 
 if __name__ == '__main__':
     argv = sys.argv
@@ -87,12 +87,14 @@ if __name__ == '__main__':
     jobs = sorted(argv)
     colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k')
     for (idx, uid) in enumerate(jobs):
-        train_acc, dev_acc = read_log(uid)
+        train_acc, dev_acc, dev_UAS = read_log(uid)
         if not silent:
             plt.plot(range(len(train_acc)), train_acc, '.', color=colors[idx % len(colors)],
                      label=uid + ' (train)', alpha=0.3)
             plt.plot(range(len(dev_acc)), dev_acc, '-', color=colors[idx % len(colors)],
                      label=uid + ' (dev)')
+            plt.plot(range(len(dev_UAS)), dev_UAS, '--', color=colors[idx % len(colors)],
+                     label=uid + ' (dev UAS)')
 
     if not silent:
         plt.legend(loc='best')
