@@ -414,9 +414,8 @@ def main(args):
                     all_acc += nndep.test_fn(dev_x, dev_l, dev_y) * len(mb)
                 logging.info('Dev acc. (%d):  %.4f' % (n_dev, all_acc / n_dev))
 
-        logging.info('Parse the dev set..')
-        UAS, LAS = nndep.parse(dev_set)
-        logging.info('Epoch = %d, UAS: %.4f' % (epoch, UAS))
+                UAS, LAS = nndep.parse(dev_set)
+                logging.info('UAS: %.4f' % UAS)
 
 if __name__ == '__main__':
     args = config.get_args()
