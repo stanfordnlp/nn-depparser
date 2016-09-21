@@ -53,7 +53,7 @@ def build_dict(keys, n_max=None, offset=0):
 
 def get_embeddings(in_file):
     """
-        Load embedding file
+        Load embedding file.
     """
     embeddings = {}
     for line in open(in_file).readlines():

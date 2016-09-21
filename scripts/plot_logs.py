@@ -15,13 +15,14 @@ def get_timestamp(line):
 
 def get_update(line):
     line = line.strip()
-    return (line.split(' ')[4][:-1], line.split(' ')[7]) if ('Epoch = ' in line) and ('iter =' in line) else None
+    return (line.split(' ')[4][:-1], line.split(' ')[7]) \
+        if ('Epoch = ' in line) and ('iter =' in line) else None
 
 
 def read_log(uid):
     train_acc = []
     dev_acc = []
-    UAS = []
+    dev_UAS = []
     all_jobs = []
 
     # Read head file to check if there is a pre-trained model
@@ -49,7 +50,7 @@ def read_log(uid):
                 if 'Dev acc' in sline:
                     dev_acc.append(float(sline.split(' ')[-1]))
                 if 'UAS' in sline:
-                    UAS.append(float(sline.split(' ')[-1]))
+                    dev_UAS.append(float(sline.split(' ')[-1]))
                 ts = get_timestamp(line)
                 update = get_update(line)
                 last_ts = ts if ts is not None else last_ts
@@ -64,13 +65,14 @@ def read_log(uid):
         k = np.argmax(dev_acc)
         print 'best dev accuracy: %d / %d: %.4f' % (k, len(dev_acc), dev_acc[k])
 
-    if len(UAS) > 0:
-        print 'best UAS : %.4f' % max(UAS)
+    if len(dev_UAS) > 0:
+        k = np.argmax(dev_UAS)
+        print 'best dev UAS : %d / %d: %.4f' % (k, len(dev_UAS), dev_UAS[k])
 
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])
     print 'all jobs: %s' % (', '.join(all_jobs))
-    return train_acc, dev_acc, UAS
+    return train_acc, dev_acc, dev_UAS
 
 if __name__ == '__main__':
     argv = sys.argv
@@ -91,9 +93,9 @@ if __name__ == '__main__':
         if not silent:
             plt.plot(range(len(train_acc)), train_acc, '.', color=colors[idx % len(colors)],
                      label=uid + ' (train)', alpha=0.3)
-            plt.plot(range(len(dev_acc)), dev_acc, '-', color=colors[idx % len(colors)],
+            plt.plot(range(len(dev_acc)), dev_acc, '--', color=colors[idx % len(colors)],
                      label=uid + ' (dev)')
-            plt.plot(range(len(dev_UAS)), dev_UAS, '--', color=colors[idx % len(colors)],
+            plt.plot(range(len(dev_UAS)), dev_UAS, '-', color=colors[idx % len(colors)],
                      label=uid + ' (dev UAS)')
 
     if not silent:

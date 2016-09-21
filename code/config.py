@@ -4,21 +4,19 @@ import theano
 from sys import platform as _platform
 
 
+_floatX = theano.config.floatX
+
 DATA_DIR = '/Users/danqi/Documents/research/datasets/dependency-treebanks/' \
     if _platform == 'darwin' \
     else '/u/nlp/data/dependency_treebanks/'
-
 LOG_DIR = '../logs/'
 MODEL_DIR = '../models/'
-
-_floatX = theano.config.floatX
 
 P_PREFIX = '<p>:'
 L_PREFIX = '<l>:'
 UNK = '<UNK>'
 NULL = '<NULL>'
 ROOT = '<ROOT>'
-
 PUNCT = [P_PREFIX + p for p in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]]
 
 
@@ -33,7 +31,7 @@ def get_args():
     parser.add_argument('--job_id', '-j',
                         type=str,
                         default=None,
-                        help='The job id to run')
+                        help='The job id to run.')
 
     parser.add_argument('--random_seed',
                         type=int,
@@ -136,22 +134,22 @@ def get_args():
     parser.add_argument('--max_words',
                         type=int,
                         default=None,
-                        help='Keep the most frequent max_words word types, default is None')
+                        help='Keep the most frequent max_words word types, default is None.')
 
     parser.add_argument('--unlabeled',
                         type='bool',
                         default=True,
-                        help='Whether to train an unlabeled parser, default is True')
+                        help='Whether to train an unlabeled parser, default is True.')
 
     parser.add_argument('--use_pos',
                         type='bool',
                         default=True,
-                        help='Whether to use the part-of-speech tags, defauls is True')
+                        help='Whether to use the part-of-speech tags, default is True.')
 
     parser.add_argument('--use_dep',
                         type='bool',
                         default=False,
-                        help='Whether to use the dependency labels, defauls is False')
+                        help='Whether to use the dependency labels, default is False.')
 
     # TODO: haven't used single_root yet..
     parser.add_argument('--single_root',
