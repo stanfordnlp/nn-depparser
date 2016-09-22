@@ -58,3 +58,8 @@ if [ $1 = "spanish" ]; then
     	ln -s ${UD_TREEBANK_DIR}/UD_Spanish/es-ud-${split}.conllu ${DIR}/$1/${split}.gold.conll
     done
 fi
+
+for split in train dev test; do
+    echo ${split}: get corenlp pos tags
+    python ../scripts/replace_corenlp_pos.py $1 ${DIR}/$1/${split}.gold.conll ${DIR}/$1/${split}.conll
+done
