@@ -3,7 +3,7 @@
 
 ## Treebanks
 
-* Directory: `/u/nlp/data/dependency_treebanks/corenlp-3.7.0/`.
+* Directory: `/u/nlp/data/dependency_treebanks/corenlp-3.7.0/`
 * See `gen_data.sh` for details.
 * `{train|dev|test}.gold.conll`: gold part-of-speech tags.
 * `{train|dev|test}.conll`: automatic part-of-speech tags by CoreNLP.
