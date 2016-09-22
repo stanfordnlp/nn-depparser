@@ -1,3 +1,5 @@
+#!/bin/bash
+
 DIR=/u/nlp/data/dependency_treebanks/corenlp-3.7.0
 UD_TREEBANK_DIR=/u/nlp/data/dependency_treebanks/UD/1.3/
 
@@ -11,7 +13,7 @@ if [ $1 = "english-wsj" ]; then
     for split in train dev test; do
 	    echo generate ${split}..
 	    java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/PTB/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
-    done 
+    done
 fi
 
 # english
@@ -19,13 +21,18 @@ if [ $1 = "english" ]; then
     for split in train dev test; do
         echo generate ${split}..
         java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/PTB/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
+        if [$split = "train"]; then
+            java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/extraTrain/extraTrain.mrg >> ${DIR}/$1/train.gold.conll
+        fi
     done
-    java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/extraTrain/extraTrain.mrg >> ${DIR}/$1/train.gold.conll
 fi
 
 # chinese
 if [ $1 = "chinese" ]; then
-    echo 'TODO'
+    for split in train dev test; do
+        echo generate ${split}..
+        java -mx1g edu.stanford.nlp.trees.international.pennchinese.UniversalChineseGrammaticalStructure
+        -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/CTB9/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
 fi
 
 # french
@@ -51,5 +58,3 @@ if [ $1 = "spanish" ]; then
     	ln -s ${UD_TREEBANK_DIR}/UD_Spanish/es-ud-${split}.conllu ${DIR}/$1/${split}.gold.conll
     done
 fi
-
-
