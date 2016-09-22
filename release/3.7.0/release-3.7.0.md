@@ -8,9 +8,8 @@
 * `{train|dev|test}.gold.conll`: gold part-of-speech tags.
 * `{train|dev|test}.conll`: automatic part-of-speech tags by CoreNLP.
 
-
-Treebank  | #Train  |  #Dev | #Test
------- | --------- | ----------
+Treebank  | #Train    |  #Dev | #Test
+----------| --------- | ---------- | -----
 english-wsj  | 39,832  |  1,700 | 2,416
 english    |  58,619 | 1,700 | 2,416
 chinese   | 126,424 | 2,079 | 2,796
