@@ -21,7 +21,7 @@ if [ $1 = "english" ]; then
     for split in train dev test; do
         echo generate ${split}..
         java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/PTB/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
-        if [$split = "train"]; then
+        if [ ${split} = "train" ]; then
             java -mx1g edu.stanford.nlp.trees.UniversalEnglishGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/extraTrain/extraTrain.mrg >> ${DIR}/$1/train.gold.conll
         fi
     done
@@ -31,8 +31,8 @@ fi
 if [ $1 = "chinese" ]; then
     for split in train dev test; do
         echo generate ${split}..
-        java -mx1g edu.stanford.nlp.trees.international.pennchinese.UniversalChineseGrammaticalStructure
-        -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/CTB9/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
+        java -mx1g edu.stanford.nlp.trees.international.pennchinese.UniversalChineseGrammaticalStructure -basic -keepPunct -conllx -treeFile /u/nlp/data/dependency_treebanks/CTB9/tree_files/${split}.mrg > ${DIR}/$1/${split}.gold.conll
+    done
 fi
 
 # french
