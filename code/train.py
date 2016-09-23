@@ -220,12 +220,17 @@ class Parser:
 
         l_in = lasagne.layers.InputLayer((None, self.n_features), in_x)
         embeddings = np.random.normal(0, 0.01, (self.n_tokens, self.embedding_size)).astype(_floatX)
+        n_pre_trained = 0
         for token in self.tok2id:
             i = self.tok2id[token]
             if token in emb:
                 embeddings[i] = emb[token]
+                n_pre_trained += 1
             elif token.lower() in emb:
                 embeddings[i] = emb[token.lower()]
+                n_pre_trained += 1
+        logging.info('pre-trained: %d / %d = %.2f%%' % (n_pre_trained, self.n_tokens,
+                                                        n_pre_trained * 100.0 / self.n_tokens))
         l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens,
                                               self.embedding_size, W=embeddings)
         network = l_emb
@@ -436,11 +441,11 @@ def main(args):
                 logging.info('Dev accuracy:  %.4f' % (all_acc / n_dev))
 
                 UAS, LAS = nndep.parse(dev_set)
-                logging.info('Dev UAS: %.4f, LAS: %.4f' % (UAS, LAS))
+                logging.info('Dev UAS: %.2f, LAS: %.2f' % (UAS * 100.0, LAS * 100.0))
                 if UAS > best_UAS:
                     best_UAS = UAS
-                    logging.info('Best UAS: epoch = %d, iter = %d, n_udpates = %d, UAS = %.4f'
-                                 % (epoch, index, n_updates, UAS))
+                    logging.info('Best UAS: epoch = %d, iter = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
+                                 % (epoch, index, n_updates, UAS * 100.0, LAS * 100.0))
                     if args.model_file is not None:
                         logging.info('Saving new model..')
                         utils.save_params(args.model_file, nndep.params,

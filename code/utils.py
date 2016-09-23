@@ -5,6 +5,7 @@ import logging
 import gzip
 import cPickle as pickle
 
+
 def read_conll(in_file, lowercase=False, max_example=None):
     """
         Load parse trees from CoNLL file.

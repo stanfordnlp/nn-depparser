@@ -6,9 +6,9 @@ import numpy as np
 
 def get_timestamp(line):
     line = line.strip()
-    if line.startswith('03-') or line.startswith('04-') or \
-       line.startswith('05-') or line.startswith('06-') or \
-       line.startswith('07-'):
+    if (len(line) >= 3) and (line[2] == '-') and \
+       (line[:2] in ['01', '02', '03', '04', '05', '06', '07',
+                     '08', '09', '10', '11', '12']):
             return ' '.join(line.split(' ')[:2])
     return None
 
@@ -23,6 +23,7 @@ def read_log(uid):
     train_acc = []
     dev_acc = []
     dev_UAS = []
+    dev_LAS = []
     all_jobs = []
 
     # Read head file to check if there is a pre-trained model
@@ -49,8 +50,12 @@ def read_log(uid):
                     train_acc.append(float(sline.split(' ')[-1]))
                 if 'Dev acc' in sline:
                     dev_acc.append(float(sline.split(' ')[-1]))
-                if 'UAS' in sline:
-                    dev_UAS.append(float(sline.split(' ')[-1]))
+                if ('UAS' in sline) and ('Best' not in sline):
+                    if 'LAS' in sline:
+                        dev_UAS.append(float(sline.split(' ')[-3][:-1]))
+                        dev_LAS.append(float(sline.split(' ')[-1]))
+                    else:
+                        dev_UAS.append(float(sline.split(' ')[-1]))
                 ts = get_timestamp(line)
                 update = get_update(line)
                 last_ts = ts if ts is not None else last_ts
