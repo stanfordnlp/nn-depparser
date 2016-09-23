@@ -7,7 +7,7 @@ import logging
 import time
 
 import config
-from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT, PUNCT
+from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
 from config import _floatX
 
 import theano
@@ -39,6 +39,7 @@ class Parser:
         self.l2_reg = args.l2_reg
         self.embedding_size = args.embedding_size
         self.hidden_size = args.hidden_size
+        self.language = args.language
 
         if self.unlabeled:
             trans = ['S', 'L', 'R']
@@ -280,7 +281,23 @@ class Parser:
         return labels
 
     def punct(self, pos):
-        return (self.id2tok[pos] in PUNCT)
+        assert self.id2tok[pos].startswith(P_PREFIX)
+        token = self.id2token[pos][len(P_PREFIX):]
+        if self.language == 'engish':
+            return token in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
+        elif self.language == 'chinese':
+            return token == 'PU'
+        elif self.language == 'french':
+            return token == 'PUNC'
+        elif self.language == 'german':
+            return token in ["$.", "$,", "$["]
+        elif self.language == 'spanish':
+            # http://nlp.stanford.edu/software/spanish-faq.shtml
+            return token in ["f0", "faa", "fat", "fc", "fd", "fe", "fg", "fh",
+                             "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
+                             "fx", "fz"]
+        else:
+            raise ValueError('language: %s is not supported.' % self.language)
 
     def parse(self, eval_set, eval_batch_size=1000):
         ind = []

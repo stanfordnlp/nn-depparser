@@ -17,7 +17,6 @@ L_PREFIX = '<l>:'
 UNK = '<UNK>'
 NULL = '<NULL>'
 ROOT = '<ROOT>'
-PUNCT = [P_PREFIX + p for p in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]]
 
 
 def str2bool(v):
@@ -37,6 +36,11 @@ def get_args():
                         type=int,
                         default=1013,
                         help='Random seed')
+
+    parser.add_argument('--language',
+                        type=str,
+                        default='english',
+                        help='Language')
 
     parser.add_argument('--data_path',
                         type=str,
