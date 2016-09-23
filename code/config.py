@@ -73,7 +73,7 @@ def get_args():
 
     parser.add_argument('--hidden_size',
                         type=int,
-                        default=200,
+                        default=1000,
                         help='Hidden size')
 
     parser.add_argument('--embedding_size',
@@ -93,17 +93,17 @@ def get_args():
 
     parser.add_argument('--batch_size',
                         type=int,
-                        default=100,
+                        default=10000,
                         help='Batch size')
 
     parser.add_argument('--n_epoches',
                         type=int,
-                        default=100,
+                        default=1000,
                         help='Number of epoches')
 
     parser.add_argument('--learning_rate',
                         type=float,
-                        default=0.1)
+                        default=0.01)
 
     parser.add_argument('--l2_reg',
                         type=float,
@@ -132,7 +132,7 @@ def get_args():
 
     parser.add_argument('--optimizer',
                         type=str,
-                        default='adam',
+                        default='adagrad',
                         help='Optimizer')
 
     parser.add_argument('--max_words',
