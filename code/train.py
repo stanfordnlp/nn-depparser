@@ -85,7 +85,8 @@ class Parser:
         """
         vec_examples = []
         for ex in examples:
-            word = [self.ROOT] + [self.tok2id[w] if w in self.tok2id else self.UNK for w in ex['word']]
+            word = [self.ROOT] + [self.tok2id[w] if w in self.tok2id
+                                  else self.UNK for w in ex['word']]
             pos = [self.P_ROOT] + [self.tok2id[P_PREFIX + w] if P_PREFIX + w in self.tok2id
                                    else self.P_UNK for w in ex['pos']]
             head = [-1] + ex['head']
@@ -193,7 +194,8 @@ class Parser:
                     break
                 legal_labels = self.legal_labels(stack, buf)
                 assert legal_labels[gold_t] == 1
-                instances.append((self.extract_features(stack, buf, arcs, ex), legal_labels, gold_t))
+                instances.append((self.extract_features(stack, buf, arcs, ex),
+                                  legal_labels, gold_t))
                 if gold_t == 0:
                     stack.append(buf[0])
                     buf = buf[1:]
@@ -224,7 +226,8 @@ class Parser:
                 embeddings[i] = emb[token]
             elif token.lower() in emb:
                 embeddings[i] = emb[token.lower()]
-        l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens, self.embedding_size, W=embeddings)
+        l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens,
+                                              self.embedding_size, W=embeddings)
         network = l_emb
         if self.input_dropout_rate > 0:
             network = lasagne.layers.DropoutLayer(network, p=self.input_dropout_rate)
@@ -237,9 +240,6 @@ class Parser:
             elif self.nonlinearity == 'tanh':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
                                                     nonlinearity=lasagne.nonlinearities.tanh)
-            elif self.nonlinearity == 'leaky_relu':
-                network = lasagne.layers.DenseLayer(network, self.hidden_size,
-                                                    nonlinearity=lasagne.nonlinearities.leaky_rectify)
             else:
                 raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
             if self.dropout_rate > 0:
@@ -253,7 +253,8 @@ class Parser:
         train_prob = lasagne.layers.get_output(network, deterministic=False)
         loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
         if self.l2_reg > 0:
-            loss += self.l2_reg * lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
+            loss += self.l2_reg * \
+                lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
         params = lasagne.layers.get_all_params(network, trainable=True)
 
         if self.optimizer == 'sgd':
@@ -318,7 +319,8 @@ class Parser:
             step = step + 1
             for mb in utils.get_minibatches(len(ind), eval_batch_size, shuffle=False):
                 #   def extract_features(self, stack, buf, arcs, ex):
-                mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]], arcs[ind[k]], eval_set[ind[k]]) for k in mb]
+                mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]],
+                                              arcs[ind[k]], eval_set[ind[k]]) for k in mb]
                 mb_x = np.array(mb_x).astype('int32')
                 mb_l = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
                 mb_l = np.array(mb_l).astype(_floatX)
@@ -345,8 +347,9 @@ class Parser:
                 label[t] = l
             UAS += sum([1 for (pred_h, gold_h, pos) in zip(head[1:], ex['head'][1:], ex['pos'][1:])
                         if pred_h == gold_h and not self.punct(pos)])
-            LAS += sum([1 for (pred_l, gold_l, pos) in zip(label[1:], ex['label'][1:], ex['pos'][1:])
-                       if pred_l == gold_l and not self.punct(pos)])
+            LAS += sum([1 for (pred_l, gold_l, pos) in
+                        zip(label[1:], ex['label'][1:], ex['pos'][1:])
+                        if pred_l == gold_l and not self.punct(pos)])
             all_tokens += sum([1 for pos in ex['pos'][1:] if not self.punct(pos)])
         return UAS / all_tokens, LAS / all_tokens
 
@@ -433,6 +436,7 @@ def main(args):
 
                 UAS, LAS = nndep.parse(dev_set)
                 logging.info('UAS: %.4f' % UAS)
+                logging.info('LAS: %.4f' % LAS)
 
 
 if __name__ == '__main__':
