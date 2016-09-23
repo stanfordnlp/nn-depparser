@@ -80,7 +80,7 @@ if __name__ == '__main__':
         for line in f_in.readlines():
             sp = line.strip().split('\t')
             if (len(sp) == 10) and ('-' not in sp[0]):
-                assert sp[1] == tagged[k][0]
+                #assert sp[1] == tagged[k][0]
                 sp[4] = tagged[k][1]
                 k += 1
                 f_out.write('%s\n' % '\t'.join(sp))
