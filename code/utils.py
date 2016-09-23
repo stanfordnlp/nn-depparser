@@ -4,7 +4,7 @@ import numpy as np
 import logging
 
 
-def read_conll(in_file, lowercase=True, max_example=None):
+def read_conll(in_file, lowercase=False, max_example=None):
     """
         Load parse trees from CoNLL file.
         See CoNLL-X format at http://ilk.uvt.nl/conll/.
@@ -15,10 +15,11 @@ def read_conll(in_file, lowercase=True, max_example=None):
         for line in f.readlines():
             sp = line.strip().split('\t')
             if len(sp) == 10:
-                word.append(sp[1].lower() if lowercase else sp[1])
-                pos.append(sp[4])
-                head.append(int(sp[6]))
-                label.append(sp[7])
+                if '-' not in sp[0]:
+                    word.append(sp[1].lower() if lowercase else sp[1])
+                    pos.append(sp[4])
+                    head.append(int(sp[6]))
+                    label.append(sp[7])
             elif len(word) > 0:
                 examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
                 word, pos, head, label = [], [], [], []
