@@ -255,7 +255,7 @@ class Parser:
         if self.l2_reg > 0:
             loss += self.l2_reg * \
                 lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
-        params = lasagne.layers.get_all_params(network, trainable=True)
+        self.params = lasagne.layers.get_all_params(network, trainable=True)
 
         if self.optimizer == 'sgd':
             updates = lasagne.updates.sgd(loss, params, learning_rate=self.learning_rate)
@@ -400,6 +400,7 @@ def main(args):
     logging.info('Start training...')
     start_time = time.time()
     n_updates = 0
+    best_UAS = 0.0
     for epoch in range(args.n_epoches):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
@@ -435,13 +436,22 @@ def main(args):
                 logging.info('Dev acc. (%d):  %.4f' % (n_dev, all_acc / n_dev))
 
                 UAS, LAS = nndep.parse(dev_set)
-                logging.info('UAS: %.4f' % UAS)
-                logging.info('LAS: %.4f' % LAS)
+                logging.info('UAS: %.4f, LAS: %.4f' % (UAS, LAS))
+                if UAS > best_UAS:
+                    best_UAS = UAS
+                    logging.info('Saving new model..')
+                    logging.info('epoch = %d, iter = %d, n_udpates = %d, UAS = %.4f'
+                                 % (epoch, index, n_updates, UAS))
+                    utils.save_params(args.model_file, params,
+                                      epoch=epoch,
+                                      n_updates=n_updates)
 
 
 if __name__ == '__main__':
     args = config.get_args()
     args.use_dep = args.use_dep and (not args.unlabeled)
+    args.log_file = os.path.join(config.LOG_DIR, args.job_id + '.txt')
+    args.model_file = os.path.join(config.MODEL_DIR, args.job_id + '.pkl.gz')
 
     np.random.seed(args.random_seed)
     lasagne.random.set_rng(np.random.RandomState(args.random_seed))
@@ -450,7 +460,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M:%S')
     else:
-        logging.basicConfig(filename=os.path.join(config.LOG_DIR, args.job_id + '.txt'),
+        logging.basicConfig(filename=args.log_file,
                             filemode='w', level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M:%S')
 
