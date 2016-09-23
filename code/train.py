@@ -439,24 +439,29 @@ def main(args):
                 logging.info('UAS: %.4f, LAS: %.4f' % (UAS, LAS))
                 if UAS > best_UAS:
                     best_UAS = UAS
-                    logging.info('Saving new model..')
-                    logging.info('epoch = %d, iter = %d, n_udpates = %d, UAS = %.4f'
+                    logging.info('Best UAS: epoch = %d, iter = %d, n_udpates = %d, UAS = %.4f'
                                  % (epoch, index, n_updates, UAS))
-                    utils.save_params(args.model_file, params,
-                                      epoch=epoch,
-                                      n_updates=n_updates)
-
+                    if args.model_file is not None:
+                        logging.info('Saving new model..')
+                        utils.save_params(args.model_file, params,
+                                          epoch=epoch,
+                                          n_updates=n_updates)
 
 if __name__ == '__main__':
     args = config.get_args()
     args.use_dep = args.use_dep and (not args.unlabeled)
-    args.log_file = os.path.join(config.LOG_DIR, args.job_id + '.txt')
-    args.model_file = os.path.join(config.MODEL_DIR, args.job_id + '.pkl.gz')
+
+    if args.job_id is not None:
+        args.log_file = os.path.join(config.LOG_DIR, args.job_id + '.txt')
+        args.model_file = os.path.join(config.MODEL_DIR, args.job_id + '.pkl.gz')
+    else:
+        args.log_file = None
+        args.model_file = None
 
     np.random.seed(args.random_seed)
     lasagne.random.set_rng(np.random.RandomState(args.random_seed))
 
-    if args.job_id is None:
+    if args.log_file is None:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M:%S')
     else:
