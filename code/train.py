@@ -27,6 +27,7 @@ class Parser:
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
 
         self.unlabeled = args.unlabeled
+        self.no_punct = args.no_punct
         self.use_pos = args.use_pos
         self.use_dep = args.use_dep
         self.n_layers = args.n_layers
@@ -350,12 +351,12 @@ class Parser:
             for h, t, l in arcs[i]:
                 head[t] = h
                 label[t] = l
-            UAS += sum([1 for (pred_h, gold_h, pos) in zip(head[1:], ex['head'][1:], ex['pos'][1:])
-                        if pred_h == gold_h and not self.punct(pos)])
-            LAS += sum([1 for (pred_l, gold_l, pos) in
-                        zip(label[1:], ex['label'][1:], ex['pos'][1:])
-                        if pred_h == gold_h and pred_l == gold_l and not self.punct(pos)])
-            all_tokens += sum([1 for pos in ex['pos'][1:] if not self.punct(pos)])
+            for pred_h, gold_h, pred_l, gold_l, pos in \
+                    zip(head[1:], ex['head'][1:], label[1:], ex['label'][1:], ex['pos'][1:]):
+                    if (not self.no_punct) or (not self.punct(pos)):
+                        UAS += 1 if pred_h == gold_h else 0
+                        LAS += 1 if (pred_h == gold_h) and (pred_l == gold_l) else 0
+                        all_tokens += 1
         return UAS / all_tokens, LAS / all_tokens
 
 
@@ -444,8 +445,8 @@ def main(args):
                 logging.info('Dev UAS: %.2f, LAS: %.2f' % (UAS * 100.0, LAS * 100.0))
                 if UAS > best_UAS:
                     best_UAS = UAS
-                    logging.info('Best UAS: epoch = %d, iter = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
-                                 % (epoch, index, n_updates, UAS * 100.0, LAS * 100.0))
+                    logging.info('Best UAS: epoch = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
+                                 % (epoch, n_updates, UAS * 100.0, LAS * 100.0))
                     if args.model_file is not None:
                         logging.info('Saving new model..')
                         utils.save_params(args.model_file, nndep.params,

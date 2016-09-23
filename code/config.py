@@ -66,6 +66,11 @@ def get_args():
                         default=False,
                         help='Whether to make words lowercase by default')
 
+    parser.add_argument('--no_punct',
+                        type='bool',
+                        default=True,
+                        help='Whether to exclude punctuation in evaluation')
+
     parser.add_argument('--max_train',
                         type=int,
                         default=None,
