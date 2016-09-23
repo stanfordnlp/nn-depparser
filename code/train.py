@@ -258,13 +258,13 @@ class Parser:
         self.params = lasagne.layers.get_all_params(network, trainable=True)
 
         if self.optimizer == 'sgd':
-            updates = lasagne.updates.sgd(loss, params, learning_rate=self.learning_rate)
+            updates = lasagne.updates.sgd(loss, self.params, learning_rate=self.learning_rate)
         elif self.optimizer == 'adam':
-            updates = lasagne.updates.adam(loss, params)
+            updates = lasagne.updates.adam(loss, self.params)
         elif self.optimizer == 'rmsprop':
-            updates = lasagne.updates.rmsprop(loss, params)
+            updates = lasagne.updates.rmsprop(loss, self.params)
         elif self.optimizer == 'adagrad':
-            updates = lasagne.updates.adagrad(loss, params, learning_rate=self.learning_rate)
+            updates = lasagne.updates.adagrad(loss, self.params, learning_rate=self.learning_rate)
         else:
             raise NotImplementedError('optimizer = %s' % self.optimizer)
         self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
@@ -443,7 +443,7 @@ def main(args):
                                  % (epoch, index, n_updates, UAS))
                     if args.model_file is not None:
                         logging.info('Saving new model..')
-                        utils.save_params(args.model_file, params,
+                        utils.save_params(args.model_file, nndep.params,
                                           epoch=epoch,
                                           n_updates=n_updates)
 
