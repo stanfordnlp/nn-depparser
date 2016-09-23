@@ -284,7 +284,7 @@ class Parser:
     def punct(self, pos):
         assert self.id2tok[pos].startswith(P_PREFIX)
         token = self.id2tok[pos][len(P_PREFIX):]
-        if self.language == 'engish':
+        if self.language == 'english':
             return token in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
         elif self.language == 'chinese':
             return token == 'PU'
@@ -349,7 +349,7 @@ class Parser:
                         if pred_h == gold_h and not self.punct(pos)])
             LAS += sum([1 for (pred_l, gold_l, pos) in
                         zip(label[1:], ex['label'][1:], ex['pos'][1:])
-                        if pred_l == gold_l and not self.punct(pos)])
+                        if pred_h == gold_h and pred_l == gold_l and not self.punct(pos)])
             all_tokens += sum([1 for pos in ex['pos'][1:] if not self.punct(pos)])
         return UAS / all_tokens, LAS / all_tokens
 
