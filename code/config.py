@@ -37,12 +37,12 @@ def get_args():
                         default=1013,
                         help='Random seed')
 
-    parser.add_argument('--language',
+    parser.add_argument('--language', '-l',
                         type=str,
                         default='english',
                         help='Language')
 
-    parser.add_argument('--data_path',
+    parser.add_argument('--data_path', '-d',
                         type=str,
                         default=os.path.join(DATA_DIR, 'PTB/Stanford_3_3_0'),
                         help='Data path')
