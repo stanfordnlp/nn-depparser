@@ -283,7 +283,7 @@ class Parser:
 
     def punct(self, pos):
         assert self.id2tok[pos].startswith(P_PREFIX)
-        token = self.id2token[pos][len(P_PREFIX):]
+        token = self.id2tok[pos][len(P_PREFIX):]
         if self.language == 'engish':
             return token in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
         elif self.language == 'chinese':
@@ -445,7 +445,8 @@ def main(args):
                         logging.info('Saving new model..')
                         utils.save_params(args.model_file, nndep.params,
                                           epoch=epoch,
-                                          n_updates=n_updates)
+                                          n_updates=n_updates,
+                                          id2tok=nndep.id2tok)
 
 if __name__ == '__main__':
     args = config.get_args()
