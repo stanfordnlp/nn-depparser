@@ -425,7 +425,7 @@ def main(args):
                     train_l = np.array([train_examples[ind[t]][1] for t in mb]).astype(_floatX)
                     train_y = [train_examples[ind[t]][2] for t in mb]
                     all_acc += nndep.test_fn(train_x, train_l, train_y) * len(mb)
-                logging.info('Train acc. (%d): %.4f' % (size, all_acc / size))
+                logging.info('Train accuracy: %.4f' % (all_acc / size))
 
                 all_acc = 0.0
                 for mb in utils.get_minibatches(n_dev, args.batch_size, shuffle=False):
@@ -433,10 +433,10 @@ def main(args):
                     dev_l = np.array([dev_examples[t][1] for t in mb]).astype(_floatX)
                     dev_y = [dev_examples[t][2] for t in mb]
                     all_acc += nndep.test_fn(dev_x, dev_l, dev_y) * len(mb)
-                logging.info('Dev acc. (%d):  %.4f' % (n_dev, all_acc / n_dev))
+                logging.info('Dev accuracy:  %.4f' % (all_acc / n_dev))
 
                 UAS, LAS = nndep.parse(dev_set)
-                logging.info('UAS: %.4f, LAS: %.4f' % (UAS, LAS))
+                logging.info('Dev UAS: %.4f, LAS: %.4f' % (UAS, LAS))
                 if UAS > best_UAS:
                     best_UAS = UAS
                     logging.info('Best UAS: epoch = %d, iter = %d, n_udpates = %d, UAS = %.4f'
