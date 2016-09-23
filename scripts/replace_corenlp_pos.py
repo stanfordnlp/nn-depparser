@@ -14,7 +14,7 @@ TAGGED_FILE = 'tagged.txt'
 
 
 def get_tagger(language):
-    if language == 'english':
+    if language == 'english' or language == 'english-wsj':
         return "edu/stanford/nlp/models/pos-tagger/english-left3words/english-left3words-distsim.tagger"
     elif language == 'chinese':
         return "edu/stanford/nlp/models/pos-tagger/chinese-distsim/chinese-distsim.tagger"
