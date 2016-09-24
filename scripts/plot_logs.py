@@ -19,6 +19,10 @@ def get_update(line):
         if ('Epoch = ' in line) and ('iter =' in line) else None
 
 
+def scale(x):
+    return [k * 100.0 for k in x] if min(x) >= 0 and max(x) <= 1.0 else x
+
+
 def read_log(uid):
     train_acc = []
     dev_acc = []
@@ -77,7 +81,7 @@ def read_log(uid):
     print 'last timestamp:', last_ts
     print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])
     print 'all jobs: %s' % (', '.join(all_jobs))
-    return train_acc, dev_acc, dev_UAS
+    return scale(train_acc), scale(dev_acc), scale(dev_UAS)
 
 if __name__ == '__main__':
     argv = sys.argv
