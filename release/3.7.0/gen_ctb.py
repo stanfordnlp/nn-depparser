@@ -3,6 +3,7 @@
 import glob
 
 DATA_DIR = '/scr/nlp/data/ldc/LDC2016T13-ctb9.0/data/bracketed/'
+OUTPUT_DIR = '/u/nlp/data/dependency_treebanks/CTB9/tree_files/'
 SPLIT_FILE = '/scr/nlp/data/ldc/LDC2016T13-ctb9.0/docs/ctb9.0-file-list.txt'
 
 if __name__ == '__main__':
@@ -15,7 +16,7 @@ if __name__ == '__main__':
 
     f_out = {}
     for split in ['train', 'dev', 'test']:
-        f_out[split] = open(split + '.mrg', 'w')
+        f_out[split] = open(OUTPUT_DIR + split + '.mrg', 'w')
     with open(SPLIT_FILE) as f_in:
         for line in f_in.readlines():
             sp = line.strip().split(' ')
@@ -26,9 +27,11 @@ if __name__ == '__main__':
                 name = sp[1]
                 split = 'dev' if sp[0] == '!' else 'test'
 
-            with open(mapping[name]) as f:
-                for line in f.readlines():
-                    f_out[split].write(line.strip() + '\n')
+            #print '%s\t%s' % (split, mapping[name].split('.')[-1])
+            if mapping[name].split('.')[-1] in ['bn', 'nw', 'mz']:
+                with open(mapping[name]) as f:
+                    for line in f.readlines():
+                        f_out[split].write(line.strip() + '\n')
 
     for split in ['train', 'dev', 'test']:
         f_out[split].close()
