@@ -38,7 +38,7 @@ spanish | 14,187 | 1,552 | 274
 * Splits: `docs/ctb9.0-file-list.txt`
     * \*: test files; !: dev files.
     * Distribution w.r.t genres: dev(bn: 110, nw: 40, mz: 10), test(bn: 121, nw: 71: mz: 13)
-    * We only used the remaining bn (broadcast news), nw (newswire), mz (magazine articles) for training as well.
+    * We only used the remaining bn (broadcast news), nw (newswire), mz (magazine articles) for training.
 * Processed files: `/u/nlp/data/dependency_treebanks/CTB9/tree_files/*.mrg`
 * UD conversion:
 ```
