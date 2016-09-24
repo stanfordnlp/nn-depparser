@@ -12,7 +12,7 @@ Treebank  | #Train    |  #Dev | #Test
 ----------| --------- | ---------- | -----
 english-wsj  | 39,832  |  1,700 | 2,416
 english    |  58,619 | 1,700 | 2,416
-chinese   | 126,424 | 2,079 | 2,796
+chinese   | 24,349 | 2,079 | 2,796
 german | 14,118 | 799 | 977
 french | 14,554 | 1,596 | 298
 spanish | 14,187 | 1,552 | 274
@@ -35,7 +35,10 @@ spanish | 14,187 | 1,552 | 274
 
 #### Chinese
 * CTB9 corpus: `/scr/nlp/data/ldc/LDC2016T13-ctb9.0`
-* Splits: `docs/ctb9.0-file-list.txt`, \*: test files; !: dev files and all the remaining files will be used as training data.
+* Splits: `docs/ctb9.0-file-list.txt`
+    * \*: test files; !: dev files.
+    * Distribution w.r.t genres: dev(bn: 110, nw: 40, mz: 10), test(bn: 121, nw: 71: mz: 13)
+    * We only used the remaining bn (broadcast news), nw (newswire), mz (magazine articles) for training as well.
 * Processed files: `/u/nlp/data/dependency_treebanks/CTB9/tree_files/*.mrg`
 * UD conversion:
 ```
