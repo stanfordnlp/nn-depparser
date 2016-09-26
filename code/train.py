@@ -287,25 +287,6 @@ class Parser:
         labels += ([1] if len(stack) >= 2 else [0]) * self.n_deprel
         return labels
 
-    def punct(self, pos):
-        assert self.id2tok[pos].startswith(P_PREFIX)
-        token = self.id2tok[pos][len(P_PREFIX):]
-        if self.language == 'english':
-            return token in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
-        elif self.language == 'chinese':
-            return token == 'PU'
-        elif self.language == 'french':
-            return token == 'PUNC'
-        elif self.language == 'german':
-            return token in ["$.", "$,", "$["]
-        elif self.language == 'spanish':
-            # http://nlp.stanford.edu/software/spanish-faq.shtml
-            return token in ["f0", "faa", "fat", "fc", "fd", "fe", "fg", "fh",
-                             "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
-                             "fx", "fz"]
-        else:
-            raise ValueError('language: %s is not supported.' % self.language)
-
     def parse(self, eval_set, eval_batch_size=1000):
         ind = []
         steps = []
@@ -353,7 +334,9 @@ class Parser:
                 label[t] = l
             for pred_h, gold_h, pred_l, gold_l, pos in \
                     zip(head[1:], ex['head'][1:], label[1:], ex['label'][1:], ex['pos'][1:]):
-                    if (not self.no_punct) or (not self.punct(pos)):
+                    assert self.id2tok[pos].startswith(P_PREFIX)
+                    pos_str = self.id2tok[pos][len(P_PREFIX):]
+                    if (not self.no_punct) or (not utils.punct(self.language, pos_str)):
                         UAS += 1 if pred_h == gold_h else 0
                         LAS += 1 if (pred_h == gold_h) and (pred_l == gold_l) else 0
                         all_tokens += 1

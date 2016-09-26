@@ -93,3 +93,21 @@ def load_params(file_name):
     with gzip.open(file_name, "rb") as save_file:
         dic = pickle.load(save_file)
     return dic
+
+
+def punct(language, pos):
+    if language == 'english':
+        return pos in ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
+    elif language == 'chinese':
+        return pos == 'PU'
+    elif language == 'french':
+        return pos == 'PUNC'
+    elif language == 'german':
+        return pos in ["$.", "$,", "$["]
+    elif language == 'spanish':
+        # http://nlp.stanford.edu/software/spanish-faq.shtml
+        return pos in ["f0", "faa", "fat", "fc", "fd", "fe", "fg", "fh",
+                         "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
+                         "fx", "fz"]
+    else:
+        raise ValueError('language: %s is not supported.' % language)
