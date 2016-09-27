@@ -2,3 +2,7 @@
 test.py
 logs/
 models/
+
+scripts/nndep/*.gz
+scripts/nndep/*.log
+
