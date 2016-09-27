@@ -109,5 +109,7 @@ def punct(language, pos):
         return pos in ["f0", "faa", "fat", "fc", "fd", "fe", "fg", "fh",
                          "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
                          "fx", "fz"]
+    elif language == 'universal':
+        return pos == 'PUNCT'
     else:
         raise ValueError('language: %s is not supported.' % language)
