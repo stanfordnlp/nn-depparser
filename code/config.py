@@ -27,135 +27,59 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', str2bool)
 
-    parser.add_argument('--job_id', '-j',
-                        type=str,
-                        default=None,
-                        help='The job id to run.')
+    # Basics
+    parser.add_argument('--job_id', '-j', default=None, help='The job id to run.')
+    parser.add_argument('--random_seed', type=int, default=1013, help='Random seed')
+    parser.add_argument('--language', '-l', default='english', help='Language')
+    parser.add_argument('--with_punct', action="store_true",
+                        help='Whether to include punctuation in evaluation')
+    parser.add_argument('--unlabeled', action="store_true",
+                        help='Whether to train an unlabeled parser')
+    parser.add_argument('--lowercase', action="store_true",
+                        help='Whether to make words lowercase by default')
+    parser.add_argument('--max_words', type=int, default=None,
+                        help='Keep the most frequent max_words word types, default is None.')
+    parser.add_argument('--use_pos', type='bool', default=True,
+                        help='Whether to use the part-of-speech tags, default is True.')
+    parser.add_argument('--use_dep', type='bool', default=False,
+                        help='Whether to use the dependency labels, default is False.')
 
-    parser.add_argument('--random_seed',
-                        type=int,
-                        default=1013,
-                        help='Random seed')
-
-    parser.add_argument('--language', '-l',
-                        type=str,
-                        default='english',
-                        help='Language')
-
+    # Data files
     parser.add_argument('--data_path', '-d',
-                        type=str,
                         default=os.path.join(DATA_DIR, 'PTB/Stanford_3_3_0'),
                         help='Data path')
-
     parser.add_argument('--train_file',
-                        type=str,
                         default='train.conll',
                         help='Training file')
-
     parser.add_argument('--dev_file',
-                        type=str,
                         default='dev.conll',
                         help='Dev file')
-
-    parser.add_argument('--embedding_file',
-                        type=str,
-                        default=os.path.join(DATA_DIR, 'embeddings/en-cw.txt'))
-
-    parser.add_argument('--lowercase',
-                        action="store_true",
-                        help='Whether to make words lowercase by default')
-
-    parser.add_argument('--with_punct',
-                        action="store_true"
-                        help='Whether to include punctuation in evaluation')
-
-    parser.add_argument('--max_train',
-                        type=int,
-                        default=None,
+    parser.add_argument('--max_train', type=int, default=None,
                         help='Only use the first max_train examples for training, default is None')
 
-    parser.add_argument('--hidden_size',
-                        type=int,
-                        default=1000,
-                        help='Hidden size')
+    parser.add_argument('--embedding_file',
+                        default=os.path.join(DATA_DIR, 'embeddings/en-cw.txt'))
 
-    parser.add_argument('--embedding_size',
-                        type=int,
-                        default=50,
-                        help='Embedding size')
-
-    parser.add_argument('--n_layers',
-                        type=int,
-                        default=1,
-                        help='Number of layers in NN')
-
-    parser.add_argument('--nonlinearity',
-                        type=str,
-                        default='relu',
-                        help='Nonlinearity, default is relu.')
-
-    parser.add_argument('--batch_size',
-                        type=int,
-                        default=10000,
-                        help='Batch size')
-
-    parser.add_argument('--n_epoches',
-                        type=int,
-                        default=1000,
-                        help='Number of epoches')
-
-    parser.add_argument('--learning_rate',
-                        type=float,
-                        default=0.01)
-
-    parser.add_argument('--l2_reg',
-                        type=float,
-                        default=1e-6,
-                        help='l2 regularization')
-
-    parser.add_argument('--b_init',
-                        type=float,
-                        default=0.0,
+    # Model related
+    parser.add_argument('--hidden_size', type=int, default=1000, help='Hidden size')
+    parser.add_argument('--embedding_size', type=int, default=50, help='Embedding size')
+    parser.add_argument('--n_layers', type=int, default=1, help='Number of layers in NN')
+    parser.add_argument('--nonlinearity', default='relu', help='Nonlinearity, default is relu.')
+    parser.add_argument('--l2_reg', type=float, default=1e-6, help='l2 regularization')
+    parser.add_argument('--b_init', type=float, default=0.0,
                         help='Initialization of b in DenseLayer')
 
-    parser.add_argument('--eval_iter',
-                        type=int,
-                        default=100,
+    # Optimization
+    parser.add_argument('--optimizer', default='adagrad', help='Optimizer')
+    parser.add_argument('--batch_size', type=int, default=10000, help='Batch size')
+    parser.add_argument('--n_epoches', type=int, default=1000, help='Number of epoches')
+    parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--eval_iter', type=int, default=100,
                         help='Evaluation on dev set after K updates')
-
-    parser.add_argument('--dropout_rate',
-                        type=float,
-                        default=0.5,
+    parser.add_argument('--dropout_rate', type=float, default=0.5,
                         help='Dropout rate')
-
-    parser.add_argument('--input_dropout_rate',
-                        type=float,
-                        default=0.2,
+    parser.add_argument('--input_dropout_rate', type=float, default=0.2,
                         help='Input dropout rate')
-
-    parser.add_argument('--optimizer',
-                        type=str,
-                        default='adagrad',
-                        help='Optimizer')
-
-    parser.add_argument('--max_words',
-                        type=int,
-                        default=None,
-                        help='Keep the most frequent max_words word types, default is None.')
-
-    parser.add_argument('--unlabeled',
-                        action="store_true",
-                        help='Whether to train an unlabeled parser')
-
-    parser.add_argument('--use_pos',
-                        type='bool',
-                        default=True,
-                        help='Whether to use the part-of-speech tags, default is True.')
-
-    parser.add_argument('--use_dep',
-                        type='bool',
-                        default=False,
-                        help='Whether to use the dependency labels, default is False.')
 
     # TODO: haven't used single_root yet..
     parser.add_argument('--single_root',
