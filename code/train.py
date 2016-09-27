@@ -16,6 +16,11 @@ import lasagne
 import numpy as np
 
 
+class CubicLayer(lasagne.layers.Layer):
+    def get_output_for(self, input, **kwargs):
+        return input * input * input
+
+
 class Parser:
 
     def __init__(self, dataset, args):
@@ -246,6 +251,10 @@ class Parser:
             elif self.nonlinearity == 'tanh':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
                                                     nonlinearity=lasagne.nonlinearities.tanh)
+            elif self.nonlinearity == 'cubic':
+                network = lasagne.layers.DenseLayer(network, self.hidden_size,
+                                                    nonlinearity=None)
+                network = CubicLayer(network)
             else:
                 raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
             if self.dropout_rate > 0:
