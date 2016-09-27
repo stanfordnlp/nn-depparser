@@ -32,7 +32,7 @@ class Parser:
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
 
         self.unlabeled = args.unlabeled
-        self.no_punct = args.no_punct
+        self.with_punct = args.with_punct
         self.use_pos = args.use_pos
         self.use_dep = args.use_dep
         self.n_layers = args.n_layers
@@ -345,7 +345,7 @@ class Parser:
                     zip(head[1:], ex['head'][1:], label[1:], ex['label'][1:], ex['pos'][1:]):
                     assert self.id2tok[pos].startswith(P_PREFIX)
                     pos_str = self.id2tok[pos][len(P_PREFIX):]
-                    if (not self.no_punct) or (not utils.punct(self.language, pos_str)):
+                    if (self.with_punct) or (not utils.punct(self.language, pos_str)):
                         UAS += 1 if pred_h == gold_h else 0
                         LAS += 1 if (pred_h == gold_h) and (pred_l == gold_l) else 0
                         all_tokens += 1

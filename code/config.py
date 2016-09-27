@@ -62,14 +62,12 @@ def get_args():
                         default=os.path.join(DATA_DIR, 'embeddings/en-cw.txt'))
 
     parser.add_argument('--lowercase',
-                        type='bool',
-                        default=False,
+                        action="store_true",
                         help='Whether to make words lowercase by default')
 
-    parser.add_argument('--no_punct',
-                        type='bool',
-                        default=True,
-                        help='Whether to exclude punctuation in evaluation')
+    parser.add_argument('--with_punct',
+                        action="store_true"
+                        help='Whether to include punctuation in evaluation')
 
     parser.add_argument('--max_train',
                         type=int,
@@ -88,7 +86,7 @@ def get_args():
 
     parser.add_argument('--n_layers',
                         type=int,
-                        default=2,
+                        default=1,
                         help='Number of layers in NN')
 
     parser.add_argument('--nonlinearity',
@@ -146,9 +144,8 @@ def get_args():
                         help='Keep the most frequent max_words word types, default is None.')
 
     parser.add_argument('--unlabeled',
-                        type='bool',
-                        default=True,
-                        help='Whether to train an unlabeled parser, default is True.')
+                        action="store_true",
+                        help='Whether to train an unlabeled parser')
 
     parser.add_argument('--use_pos',
                         type='bool',
