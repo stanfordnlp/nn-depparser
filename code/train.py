@@ -260,7 +260,7 @@ class Parser:
             if self.dropout_rate > 0:
                 network = lasagne.layers.DropoutLayer(network, p=self.dropout_rate)
 
-        network = lasagne.layers.DenseLayer(network, self.n_trans,
+        network = lasagne.layers.DenseLayer(network, self.n_trans, b=None,
                                             nonlinearity=lasagne.nonlinearities.softmax)
 
         # train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
