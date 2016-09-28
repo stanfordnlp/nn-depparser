@@ -30,6 +30,11 @@ class Parser:
         tok2id[L_PREFIX + UNK] = self.L_UNK = len(tok2id)
         tok2id[L_PREFIX + NULL] = self.L_NULL = len(tok2id)
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
+        root_labels = list(set([l for ex in dataset
+                           for (h, l) in zip(ex['head'], ex['label']) if h == 0]))
+        assert len(root_labels) == 1
+        self.root_label = root_labels[0]
+        logging.info('Root label: %s' % self.root_label)
 
         self.unlabeled = args.unlabeled
         self.with_punct = args.with_punct
@@ -108,48 +113,56 @@ class Parser:
             Hardcoded for now.
         """
         def get_lc(k):
-            return [arc[1] for arc in arcs if arc[0] == k and arc[1] < k]
+            return sorted([arc[1] for arc in arcs if arc[0] == k and arc[1] < k])
 
         def get_rc(k):
-            return [arc[1] for arc in arcs if arc[0] == k and arc[1] > k]
+            return sorted([arc[1] for arc in arcs if arc[0] == k and arc[1] > k],
+                          reverse=True)
 
-        stack = stack[::-1]
-        features = [ex['word'][x] for x in stack[:3]] + [self.NULL] * (3 - len(stack))
+        features = [self.NULL] * (3 - len(stack)) + [ex['word'][x] for x in stack[-3:]]
         features += [ex['word'][x] for x in buf[:3]] + [self.NULL] * (3 - len(buf))
         if self.use_pos:
-            features += [ex['pos'][x] for x in stack[:3]] + [self.P_NULL] * (3 - len(stack))
-            features += [ex['pos'][x] for x in buf[:3]] + [self.P_NULL] * (3 - len(buf))
+            p_features = [self.P_NULL] * (3 - len(stack)) + [ex['pos'][x] for x in stack[-3:]]
+            p_features += [ex['pos'][x] for x in buf[:3]] + [self.P_NULL] * (3 - len(buf))
 
         for i in xrange(2):
             if i < len(stack):
-                lc = get_lc(stack[i])[:2]
-                rc = get_rc(stack[i])[-2:]
-                llc = get_lc(lc[0])[:1] if len(lc) > 0 else []
-                rrc = get_rc(rc[0])[-1:] if len(rc) > 0 else []
+                k = stack[-i-1]
+                lc = get_lc(k)
+                rc = get_rc(k)
+                llc = get_lc(lc[0]) if len(lc) > 0 else []
+                rrc = get_rc(rc[0]) if len(rc) > 0 else []
 
-                features += [ex['word'][x] for x in lc] + [self.NULL] * (2 - len(lc))
-                features += [ex['word'][x] for x in rc] + [self.NULL] * (2 - len(rc))
-                features += [ex['word'][x] for x in llc] + [self.NULL] * (1 - len(llc))
-                features += [ex['word'][x] for x in rrc] + [self.NULL] * (1 - len(rrc))
+                features += ex['word'][lc[0]] if len(lc) > 0 else self.NULL
+                features += ex['word'][rc[0]] if len(rc) > 0 else self.NULL
+                features += ex['word'][lc[1]] if len(lc) > 1 else self.NULL
+                features += ex['word'][rc[1]] if len(rc) > 1 else self.NULL
+                features += ex['word'][llc[0]] if len(llc) > 0 else self.NULL
+                features += ex['word'][rrc[0]] if len(rrc) > 0 else self.NULL
 
                 if self.use_pos:
-                    features += [ex['pos'][x] for x in lc] + [self.P_NULL] * (2 - len(lc))
-                    features += [ex['pos'][x] for x in rc] + [self.P_NULL] * (2 - len(rc))
-                    features += [ex['pos'][x] for x in llc] + [self.P_NULL] * (1 - len(llc))
-                    features += [ex['pos'][x] for x in rrc] + [self.P_NULL] * (1 - len(rrc))
+                    p_features += ex['pos'][lc[0]] if len(lc) > 0 else self.P_NULL
+                    p_features += ex['pos'][rc[0]] if len(rc) > 0 else self.P_NULL
+                    p_features += ex['pos'][lc[1]] if len(lc) > 1 else self.P_NULL
+                    p_features += ex['pos'][rc[1]] if len(rc) > 1 else self.P_NULL
+                    p_features += ex['pos'][llc[0]] if len(llc) > 0 else self.P_NULL
+                    p_features += ex['pos'][rrc[0]] if len(rrc) > 0 else self.P_NULL
 
                 if self.use_dep:
-                    features += [ex['label'][x - 1] for x in llc] + [self.L_NULL] * (1 - len(llc))
-                    features += [ex['label'][x - 1] for x in rrc] + [self.L_NULL] * (1 - len(rrc))
-                    features += [ex['label'][x - 1] for x in lc] + [self.L_NULL] * (2 - len(lc))
-                    features += [ex['label'][x - 1] for x in rc] + [self.L_NULL] * (2 - len(rc))
+                    l_features += ex['label'][lc[0]] if len(lc) > 0 else self.L_NULL
+                    l_features += ex['label'][rc[0]] if len(rc) > 0 else self.L_NULL
+                    l_features += ex['label'][lc[1]] if len(lc) > 1 else self.L_NULL
+                    l_features += ex['label'][rc[1]] if len(rc) > 1 else self.L_NULL
+                    l_features += ex['label'][llc[0]] if len(llc) > 0 else self.L_NULL
+                    l_features += ex['label'][rrc[0]] if len(rrc) > 0 else self.L_NULL
             else:
                 features += [self.NULL] * 6
                 if self.use_pos:
-                    features += [self.P_NULL] * 6
+                    p_features += [self.P_NULL] * 6
                 if self.use_dep:
-                    features += [self.L_NULL] * 6
+                    l_features += [self.L_NULL] * 6
 
+        features += p_features + l_features
         assert len(features) == self.n_features
         return features
 
@@ -444,7 +457,8 @@ def main(args):
                         utils.save_params(args.model_file, nndep.params,
                                           epoch=epoch,
                                           n_updates=n_updates,
-                                          id2tok=nndep.id2tok)
+                                          id2tok=nndep.id2tok,
+                                          root_label=nndep.root_label)
 
 if __name__ == '__main__':
     args = config.get_args()

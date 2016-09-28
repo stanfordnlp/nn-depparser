@@ -3,6 +3,8 @@
 import sys
 import numpy as np
 
+SILENT = True
+
 
 def get_timestamp(line):
     line = line.strip()
@@ -15,8 +17,13 @@ def get_timestamp(line):
 
 def get_update(line):
     line = line.strip()
-    return (line.split(' ')[4][:-1], line.split(' ')[7]) \
-        if ('Epoch = ' in line) and ('iter =' in line) else None
+    if ('Epoch = ' in line) and ('iter =' in line):
+        epoch = int(line.split(' ')[4][:-1])
+        iteration = int(line.split(' ')[7])
+        elapsed_time = float(line.split(' ')[17])
+        return (epoch, iteration, elapsed_time)
+    else:
+        return None
 
 
 def scale(x):
@@ -28,6 +35,7 @@ def read_log(uid):
     dev_acc = []
     dev_UAS = []
     dev_LAS = []
+    updates = []
     all_jobs = []
 
     # Read head file to check if there is a pre-trained model
@@ -60,6 +68,7 @@ def read_log(uid):
                         dev_LAS.append(float(sline.split(' ')[-1]))
                     else:
                         dev_UAS.append(float(sline.split(' ')[-1]))
+                    updates.append(last_update)
                 ts = get_timestamp(line)
                 update = get_update(line)
                 last_ts = ts if ts is not None else last_ts
@@ -77,29 +86,28 @@ def read_log(uid):
     if len(dev_UAS) > 0:
         k = np.argmax(dev_UAS)
         print 'best dev UAS : %d / %d: %.4f' % (k, len(dev_UAS), dev_UAS[k])
+        print '%.1f\t%d\t%.4f\t%.4f\t%.2f\t%.2f' \
+            % (last_update[2] / 3600.0, updates[k][0], train_acc[k],
+               dev_acc[k], dev_UAS[k], dev_LAS[k])
 
     print 'last timestamp:', last_ts
-    print 'last update: epoch = %s, iter = %s' % (last_update[0], last_update[1])
+    print 'last update: epoch = %d, iter = %d' % (last_update[0], last_update[1])
     print 'all jobs: %s' % (', '.join(all_jobs))
     return scale(train_acc), scale(dev_acc), scale(dev_UAS)
 
 if __name__ == '__main__':
-    argv = sys.argv
-    silent = len(argv) > 1 and argv[1] == '-silent'
-    argv = argv[2:] if silent else argv[1:]
-
-    if len(argv) < 1:
-        print'Usage: python plot_logs.py [-silent] <uid_1> <uid_2>, ...'
+    if len(sys.argv) <= 1:
+        print'Usage: python plot_logs.py <uid_1> <uid_2>, ...'
         exit(1)
 
-    if not silent:
+    if not SILENT:
         import matplotlib.pyplot as plt
 
-    jobs = sorted(argv)
+    jobs = sorted(sys.argv[1:])
     colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k')
     for (idx, uid) in enumerate(jobs):
         train_acc, dev_acc, dev_UAS = read_log(uid)
-        if not silent:
+        if not SILENT:
             plt.plot(range(len(train_acc)), train_acc, '.', color=colors[idx % len(colors)],
                      label=uid + ' (train)', alpha=0.3)
             plt.plot(range(len(dev_acc)), dev_acc, '--', color=colors[idx % len(colors)],
@@ -107,6 +115,6 @@ if __name__ == '__main__':
             plt.plot(range(len(dev_UAS)), dev_UAS, '-', color=colors[idx % len(colors)],
                      label=uid + ' (dev UAS)')
 
-    if not silent:
+    if not SILENT:
         plt.legend(loc='best')
         plt.show()
