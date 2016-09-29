@@ -28,8 +28,8 @@ class Parser:
         root_labels = list([l for ex in dataset
                            for (h, l) in zip(ex['head'], ex['label']) if h == 0])
         counter = Counter(root_labels)
-        if len(root_labels) > 1:
-            logging.info('Warning: more than one root label - %s')
+        if len(counter) > 1:
+            logging.info('Warning: more than one root label')
             logging.info(counter)
         self.root_label = counter.most_common()[0][0]
         deprel = [self.root_label] + list(set([w for ex in dataset
