@@ -66,7 +66,7 @@ def get_args():
     parser.add_argument('--hidden_size', type=int, default=1000, help='Hidden size')
     parser.add_argument('--embedding_size', type=int, default=50, help='Embedding size')
     parser.add_argument('--n_layers', type=int, default=1, help='Number of layers in NN')
-    parser.add_argument('--nonlinearity', default='relu', help='Nonlinearity, default is relu.')
+    parser.add_argument('--nonlinearity', default='cubic', help='Nonlinearity, default is cubic.')
     parser.add_argument('--l2_reg', type=float, default=1e-6, help='l2 regularization')
     parser.add_argument('--b_init', type=float, default=0.0,
                         help='Initialization of b in DenseLayer')

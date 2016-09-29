@@ -333,7 +333,6 @@ class Parser:
         while len(ind) > 0:
             step = step + 1
             for mb in utils.get_minibatches(len(ind), eval_batch_size, shuffle=False):
-                #   def extract_features(self, stack, buf, arcs, ex):
                 mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]],
                                               arcs[ind[k]], eval_set[ind[k]]) for k in mb]
                 mb_x = np.array(mb_x).astype('int32')
@@ -372,7 +371,6 @@ class Parser:
 
 
 def main(args):
-
     # Read examples
     logging.info('Load training data...')
     train_set = utils.read_conll(os.path.join(args.data_path, args.train_file),
@@ -407,6 +405,7 @@ def main(args):
         pre_trained_params = dic['params']
         for i in nndep.id2tok:
             assert (i in dic['id2tok']) and (nndep.id2tok[i] == dic['id2tok'][i])
+        logging.info('Load pre-trained model: %s' % args.pre_trained)
     else:
         pre_trained_params = None
     nndep.build_fn(embeddings, pre_trained_params)
@@ -415,7 +414,6 @@ def main(args):
     logging.info('Initial testing...')
     UAS, LAS = nndep.parse(dev_set)
     logging.info('Dev UAS: %.2f, LAS: %.2f' % (UAS * 100.0, LAS * 100.0))
-    # exit(1)
 
     # Create training and development instances
     logging.info('Create training instances...')
@@ -477,8 +475,7 @@ def main(args):
                                           epoch=epoch,
                                           n_updates=n_updates,
                                           id2tok=nndep.id2tok,
-                                          root_label=nndep.root_label,
-                                          dev_set=dev_set)
+                                          root_label=nndep.root_label)
 
 if __name__ == '__main__':
     args = config.get_args()
