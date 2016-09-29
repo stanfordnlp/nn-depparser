@@ -14,7 +14,7 @@ import theano
 import theano.tensor as T
 import lasagne
 import numpy as np
-
+from collections import Counter
 
 class CubicLayer(lasagne.layers.Layer):
     def get_output_for(self, input, **kwargs):
@@ -25,10 +25,13 @@ class Parser:
 
     def __init__(self, dataset, args):
         logging.info('Build dictionary for dependency deprel.')
-        root_labels = list(set([l for ex in dataset
-                           for (h, l) in zip(ex['head'], ex['label']) if h == 0]))
-        assert len(root_labels) == 1
-        self.root_label = root_labels[0]
+        root_labels = list([l for ex in dataset
+                           for (h, l) in zip(ex['head'], ex['label']) if h == 0])
+        counter = Counter(root_labels)
+        if len(root_labels) > 1:
+            logging.info('Warning: more than one root label - %s')
+            logging.info(counter)
+        self.root_label = counter.most_common()[0][0]
         deprel = [self.root_label] + list(set([w for ex in dataset
                                                for w in ex['label']
                                                if w != self.root_label]))
