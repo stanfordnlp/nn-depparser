@@ -25,16 +25,17 @@ class Parser:
 
     def __init__(self, dataset, args):
         logging.info('Build dictionary for dependency deprel.')
-        deprel = list(set([w for ex in dataset for w in ex['label']]))
-        tok2id = {L_PREFIX + l: i for (i, l) in enumerate(deprel)}
-        tok2id[L_PREFIX + UNK] = self.L_UNK = len(tok2id)
-        tok2id[L_PREFIX + NULL] = self.L_NULL = len(tok2id)
-        logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
         root_labels = list(set([l for ex in dataset
                            for (h, l) in zip(ex['head'], ex['label']) if h == 0]))
         assert len(root_labels) == 1
         self.root_label = root_labels[0]
+        deprel = [self.root_label] + list(set([w for ex in dataset
+                                               for w in ex['label']
+                                               if w != self.root_label]))
+        tok2id = {L_PREFIX + l: i for (i, l) in enumerate(deprel)}
+        tok2id[L_PREFIX + NULL] = self.L_NULL = len(tok2id)
         logging.info('Root label: %s' % self.root_label)
+        logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
 
         self.unlabeled = args.unlabeled
         self.with_punct = args.with_punct
@@ -53,10 +54,10 @@ class Parser:
         self.language = args.language
 
         if self.unlabeled:
-            trans = ['S', 'L', 'R']
+            trans = ['L', 'R', 'S']
             self.n_deprel = 1
         else:
-            trans = ['S'] + ['L-' + l for l in deprel] + ['R-' + l for l in deprel]
+            trans = ['L-' + l for l in deprel] + ['R-' + l for l in deprel] + ['S']
             self.n_deprel = len(deprel)
 
         self.n_trans = len(trans)
@@ -102,7 +103,7 @@ class Parser:
                                    else self.P_UNK for w in ex['pos']]
             head = [-1] + ex['head']
             label = [-1] + [self.tok2id[L_PREFIX + w] if L_PREFIX + w in self.tok2id
-                            else self.L_UNK for w in ex['label']]
+                            else -1 for w in ex['label']]
             vec_examples.append({'word': word, 'pos': pos,
                                  'head': head, 'label': label})
         return vec_examples
@@ -170,7 +171,7 @@ class Parser:
 
     def get_oracle(self, stack, buf, ex):
         if len(stack) < 2:
-            return 0
+            return self.n_trans - 1
 
         i0 = stack[-1]
         i1 = stack[-2]
@@ -181,20 +182,20 @@ class Parser:
 
         if self.unlabeled:
             if (i1 > 0) and (h1 == i0):
-                return 1
+                return 0
             elif (i1 >= 0) and (h0 == i1) and \
                  (not any([x for x in buf if ex['head'][x] == i0])):
-                return 2
+                return 1
             else:
-                return None if len(buf) == 0 else 0
+                return None if len(buf) == 0 else 2
         else:
             if (i1 > 0) and (h1 == i0):
-                return 1 + l1 if (l1 >= 0) and (l1 < self.n_deprel) else None
+                return l1 if (l1 >= 0) and (l1 < self.n_deprel) else None
             elif (i1 >= 0) and (h0 == i1) and \
                  (not any([x for x in buf if ex['head'][x] == i0])):
-                return 1 + self.n_deprel + l0 if (l0 >= 0) and (l0 < self.n_deprel) else None
+                return l0 + self.n_deprel if (l0 >= 0) and (l0 < self.n_deprel) else None
             else:
-                return None if len(buf) == 0 else 0
+                return None if len(buf) == 0 else self.n_trans - 1
 
     def create_instances(self, examples):
         all_instances = []
@@ -217,14 +218,14 @@ class Parser:
                 assert legal_labels[gold_t] == 1
                 instances.append((self.extract_features(stack, buf, arcs, ex),
                                   legal_labels, gold_t))
-                if gold_t == 0:
+                if gold_t == self.n_trans - 1:
                     stack.append(buf[0])
                     buf = buf[1:]
-                elif gold_t <= self.n_deprel:
-                    arcs.append((stack[-1], stack[-2], gold_t - 1))
+                elif gold_t < self.n_deprel:
+                    arcs.append((stack[-1], stack[-2], gold_t))
                     stack = stack[:-2] + [stack[-1]]
                 else:
-                    arcs.append((stack[-2], stack[-1], gold_t - self.n_deprel - 1))
+                    arcs.append((stack[-2], stack[-1], gold_t - self.n_deprel))
                     stack = stack[:-1]
             else:
                 succ += 1
@@ -306,9 +307,9 @@ class Parser:
         self.pred_fn = theano.function([in_x, in_l], pred)
 
     def legal_labels(self, stack, buf):
-        labels = [1] if len(buf) > 0 else [0]
-        labels += ([1] if len(stack) > 2 else [0]) * self.n_deprel
+        labels = ([1] if len(stack) > 2 else [0]) * self.n_deprel
         labels += ([1] if len(stack) >= 2 else [0]) * self.n_deprel
+        labels += [1] if len(buf) > 0 else [0]
         return labels
 
     def parse(self, eval_set, eval_batch_size=1000):
@@ -338,14 +339,14 @@ class Parser:
                 pred = self.pred_fn(mb_x, mb_l)
                 for k, tran in zip(mb, pred):
                     i = ind[k]
-                    if tran == 0:
+                    if tran == self.n_trans - 1:
                         stack[i].append(buf[i][0])
                         buf[i] = buf[i][1:]
-                    elif tran <= self.n_deprel:
-                        arcs[i].append((stack[i][-1], stack[i][-2], tran - 1))
+                    elif tran < self.n_deprel:
+                        arcs[i].append((stack[i][-1], stack[i][-2], tran))
                         stack[i] = stack[i][:-2] + [stack[i][-1]]
                     else:
-                        arcs[i].append((stack[i][-2], stack[i][-1], tran - self.n_deprel - 1))
+                        arcs[i].append((stack[i][-2], stack[i][-1], tran - self.n_deprel))
                         stack[i] = stack[i][:-1]
             ind = [k for k in ind if step < steps[k]]
 
@@ -487,5 +488,4 @@ if __name__ == '__main__':
     logging.info(' '.join(sys.argv))
     logging.info(args)
     logging.info('-' * 100)
-
     main(args)

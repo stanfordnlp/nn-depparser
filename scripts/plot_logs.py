@@ -100,6 +100,9 @@ if __name__ == '__main__':
         print'Usage: python plot_logs.py <uid_1> <uid_2>, ...'
         exit(1)
 
+    if len(sys.argv) >= 3:
+        SILENT = False
+
     if not SILENT:
         import matplotlib.pyplot as plt
 

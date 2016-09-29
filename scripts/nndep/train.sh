@@ -26,4 +26,3 @@ else
         -model $1.txt.gz > $1.log 2>&1
 fi
 
-#  java edu.stanford.nlp.parser.nndep.DependencyParser -testFile $(PTB_STANFORD_DEV) -model $@.txt.gz -outFile $@.out.dev >> $@.lo    g 2>&1

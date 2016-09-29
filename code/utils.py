@@ -107,8 +107,8 @@ def punct(language, pos):
     elif language == 'spanish':
         # http://nlp.stanford.edu/software/spanish-faq.shtml
         return pos in ["f0", "faa", "fat", "fc", "fd", "fe", "fg", "fh",
-                         "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
-                         "fx", "fz"]
+                       "fia", "fit", "fp", "fpa", "fpt", "fs", "ft",
+                       "fx", "fz"]
     elif language == 'universal':
         return pos == 'PUNCT'
     else:
