@@ -119,6 +119,8 @@ class Parser:
             return sorted([arc[1] for arc in arcs if arc[0] == k and arc[1] > k],
                           reverse=True)
 
+        p_features = []
+        l_features = []
         features = [self.NULL] * (3 - len(stack)) + [ex['word'][x] for x in stack[-3:]]
         features += [ex['word'][x] for x in buf[:3]] + [self.NULL] * (3 - len(buf))
         if self.use_pos:
@@ -133,28 +135,28 @@ class Parser:
                 llc = get_lc(lc[0]) if len(lc) > 0 else []
                 rrc = get_rc(rc[0]) if len(rc) > 0 else []
 
-                features += ex['word'][lc[0]] if len(lc) > 0 else self.NULL
-                features += ex['word'][rc[0]] if len(rc) > 0 else self.NULL
-                features += ex['word'][lc[1]] if len(lc) > 1 else self.NULL
-                features += ex['word'][rc[1]] if len(rc) > 1 else self.NULL
-                features += ex['word'][llc[0]] if len(llc) > 0 else self.NULL
-                features += ex['word'][rrc[0]] if len(rrc) > 0 else self.NULL
+                features.append(ex['word'][lc[0]] if len(lc) > 0 else self.NULL)
+                features.append(ex['word'][rc[0]] if len(rc) > 0 else self.NULL)
+                features.append(ex['word'][lc[1]] if len(lc) > 1 else self.NULL)
+                features.append(ex['word'][rc[1]] if len(rc) > 1 else self.NULL)
+                features.append(ex['word'][llc[0]] if len(llc) > 0 else self.NULL)
+                features.append(ex['word'][rrc[0]] if len(rrc) > 0 else self.NULL)
 
                 if self.use_pos:
-                    p_features += ex['pos'][lc[0]] if len(lc) > 0 else self.P_NULL
-                    p_features += ex['pos'][rc[0]] if len(rc) > 0 else self.P_NULL
-                    p_features += ex['pos'][lc[1]] if len(lc) > 1 else self.P_NULL
-                    p_features += ex['pos'][rc[1]] if len(rc) > 1 else self.P_NULL
-                    p_features += ex['pos'][llc[0]] if len(llc) > 0 else self.P_NULL
-                    p_features += ex['pos'][rrc[0]] if len(rrc) > 0 else self.P_NULL
+                    p_features.append(ex['pos'][lc[0]] if len(lc) > 0 else self.P_NULL)
+                    p_features.append(ex['pos'][rc[0]] if len(rc) > 0 else self.P_NULL)
+                    p_features.append(ex['pos'][lc[1]] if len(lc) > 1 else self.P_NULL)
+                    p_features.append(ex['pos'][rc[1]] if len(rc) > 1 else self.P_NULL)
+                    p_features.append(ex['pos'][llc[0]] if len(llc) > 0 else self.P_NULL)
+                    p_features.append(ex['pos'][rrc[0]] if len(rrc) > 0 else self.P_NULL)
 
                 if self.use_dep:
-                    l_features += ex['label'][lc[0]] if len(lc) > 0 else self.L_NULL
-                    l_features += ex['label'][rc[0]] if len(rc) > 0 else self.L_NULL
-                    l_features += ex['label'][lc[1]] if len(lc) > 1 else self.L_NULL
-                    l_features += ex['label'][rc[1]] if len(rc) > 1 else self.L_NULL
-                    l_features += ex['label'][llc[0]] if len(llc) > 0 else self.L_NULL
-                    l_features += ex['label'][rrc[0]] if len(rrc) > 0 else self.L_NULL
+                    l_features.append(ex['label'][lc[0]] if len(lc) > 0 else self.L_NULL)
+                    l_features.append(ex['label'][rc[0]] if len(rc) > 0 else self.L_NULL)
+                    l_features.append(ex['label'][lc[1]] if len(lc) > 1 else self.L_NULL)
+                    l_features.append(ex['label'][rc[1]] if len(rc) > 1 else self.L_NULL)
+                    l_features.append(ex['label'][llc[0]] if len(llc) > 0 else self.L_NULL)
+                    l_features.append(ex['label'][rrc[0]] if len(rrc) > 0 else self.L_NULL)
             else:
                 features += [self.NULL] * 6
                 if self.use_pos:
