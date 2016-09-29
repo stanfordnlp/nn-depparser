@@ -235,7 +235,7 @@ class Parser:
         logging.info('#Instances: %d' % len(all_instances))
         return all_instances
 
-    def build_fn(self, emb={}):
+    def build_fn(self, emb={}, pre_trained_params=None):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
         in_l = T.matrix('l')
@@ -278,6 +278,9 @@ class Parser:
 
         network = lasagne.layers.DenseLayer(network, self.n_trans, b=None,
                                             nonlinearity=lasagne.nonlinearities.softmax)
+
+        if pre_trained_params is not None:
+            lasagne.layers.set_all_param_values(network, pre_trained_params, trainable=True)
 
         # train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
         # train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
@@ -376,7 +379,8 @@ def main(args):
                                  lowercase=args.lowercase,
                                  max_example=args.max_train)
     logging.info('Load development data...')
-    dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file), args.lowercase)
+    dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file),
+                               lowercase=args.lowercase)
     logging.info('-' * 100)
 
     nndep = Parser(train_set, args)
@@ -384,15 +388,6 @@ def main(args):
 
     train_set = nndep.vectorize(train_set)
     dev_set = nndep.vectorize(dev_set)
-
-    logging.info('Create training instances...')
-    train_examples = nndep.create_instances(train_set)
-    logging.info('Create development instances...')
-    dev_examples = nndep.create_instances(dev_set)
-    logging.info('-' * 100)
-
-    n_train = len(train_examples)
-    n_dev = len(dev_examples)
 
     # Load embedding file
     if args.embedding_file is None:
@@ -407,8 +402,29 @@ def main(args):
 
     # Build functions
     logging.info('Build functions...')
-    nndep.build_fn(embeddings)
+    if args.pre_trained is not None:
+        dic = utils.load_params(args.pre_trained)
+        pre_trained_params = dic['params']
+        for i in nndep.id2tok:
+            assert (i in dic['id2tok']) and (nndep.id2tok[i] == dic['id2tok'][i])
+    else:
+        pre_trained_params = None
+    nndep.build_fn(embeddings, pre_trained_params)
     logging.info('Done.')
+
+    logging.info('Initial testing...')
+    UAS, LAS = nndep.parse(dev_set)
+    logging.info('Dev UAS: %.2f, LAS: %.2f' % (UAS * 100.0, LAS * 100.0))
+    # exit(1)
+
+    # Create training and development instances
+    logging.info('Create training instances...')
+    train_examples = nndep.create_instances(train_set)
+    logging.info('Create development instances...')
+    dev_examples = nndep.create_instances(dev_set)
+    logging.info('-' * 100)
+    n_train = len(train_examples)
+    n_dev = len(dev_examples)
 
     # Train
     logging.info('Start training...')
@@ -461,7 +477,8 @@ def main(args):
                                           epoch=epoch,
                                           n_updates=n_updates,
                                           id2tok=nndep.id2tok,
-                                          root_label=nndep.root_label)
+                                          root_label=nndep.root_label,
+                                          dev_set=dev_set)
 
 if __name__ == '__main__':
     args = config.get_args()

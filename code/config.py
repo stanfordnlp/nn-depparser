@@ -46,7 +46,7 @@ def get_args():
 
     # Data files
     parser.add_argument('--data_path', '-d',
-                        default=os.path.join(DATA_DIR, 'PTB/Stanford_3_3_0'),
+                        default=os.path.join(DATA_DIR, 'corenlp-3.7.0/english-wsj'),
                         help='Data path')
     parser.add_argument('--train_file',
                         default='train.conll',
@@ -56,9 +56,11 @@ def get_args():
                         help='Dev file')
     parser.add_argument('--max_train', type=int, default=None,
                         help='Only use the first max_train examples for training, default is None')
-
     parser.add_argument('--embedding_file',
                         default=os.path.join(DATA_DIR, 'embeddings/en-cw.txt'))
+    parser.add_argument('--pre_trained',
+                        default=None,
+                        help='Pre-trained model, default is None')
 
     # Model related
     parser.add_argument('--hidden_size', type=int, default=1000, help='Hidden size')
