@@ -65,13 +65,13 @@ THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32
 python train.py -l <lang> -d <data_path> --job_id <model_name>
 ```
 * `data_path = /u/nlp/data/dependency_treebanks/corenlp-3.7.0/english-wsj` (or `english`, `chinese`, `german`, `french`, `spanish`).
-* All the models are basically the same as that in original paper (one layer with cubic function), except that **we increase `hidden_size` to `1000`**.
+* All the models are basically the same as that in the original paper (one layer with cubic function), except that **we increase `hidden_size` to `1000`**.
 * We used automatic part-of-speech tags (i.e., the `train.conll`, `dev.conll` and `test.conll` files) for training all models.
     * For Chinese and German, there is a big gap (5-10%) in UAS/LAS if we train models using gold or automatic POS tags. We attribute it to POS accuracy.
-* The performance and speed of the final models are given below:
+* The performance and speeds of the final models are given below:
     * Punctuations are excluded in evaluation (see `utils.punct` function).
-    * The models are trained using Python code and we tested it in Java. We found that the results differ slightly, so there is still some subtitle difference between the two implementations (and we haven't fixed it yet).
-    * The speeds were tested on `jagupard6`.
+    * The models are trained using Python code and tested in Java. We found that the results differ slightly, so there is still some small and unknown difference between the two implementations (and we haven't fixed it yet).
+    * The speeds are tested on `jagupard6`.
 
 Treebank    | UAS (dev) | LAS (dev) | UAS (test) | LAS (test) | sent/s
 ----------  | --------- | ---------- | ----- | ------ | ---------
