@@ -1,8 +1,7 @@
 *.pyc
-test.py
 logs/
 models/
+data/
 
-scripts/nndep/*.gz
-scripts/nndep/*.log
+
 
