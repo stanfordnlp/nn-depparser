@@ -9,7 +9,7 @@
 * `{train|dev|test}.conll`: automatic part-of-speech tags by CoreNLP.
 
 Treebank  | #Train    |  #Dev | #Test | token / sent
-----------| --------- | ---------- | -----
+----------| --------- | ---------- | --------|------
 english-wsj  | 39,832  |  1,700 | 2,416 | 23.9
 english    |  58,619 | 1,700 | 2,416 | 23.3
 chinese   | 24,349 | 2,079 | 2,796 | 27.3
@@ -74,10 +74,10 @@ python train.py -l <lang> -d <data_path> --job_id <model_name>
     * The speeds were tested on `jagupard6`.
 
 Treebank    | UAS (dev) | LAS (dev) | UAS (test) | LAS (test) | sent/s
-----------  | --------- | ---------- | -----
+----------  | --------- | ---------- | ----- | ------ | ---------
 english-wsj |   92.46	| 90.20	| 92.33	| 90.18	| 140
-english |   92.24	| 89.97	| 92.34	| 90.27	| 132
-chinese | 80.49   | 75.44	| 80.85	| 75.66	| 100
-german | 79.73	| 73.54	| 75.84	| 69.26	| 197
-french  | 89.14	| 86.10	| 85.53	| 81.02	| 121
-spanish | 88.31	| 84.84	| 85.50	| 81.42	| 118
+english     |   92.24	| 89.97	| 92.34	| 90.27	| 132
+chinese     | 80.49   | 75.44	| 80.85	| 75.66	| 100
+german      | 79.73	| 73.54	| 75.84	| 69.26	| 197
+french      | 89.14	| 86.10	| 85.53	| 81.02	| 121
+spanish     | 88.31	| 84.84	| 85.50	| 81.42	| 118
