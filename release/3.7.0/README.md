@@ -8,14 +8,14 @@
 * `{train|dev|test}.gold.conll`: gold part-of-speech tags.
 * `{train|dev|test}.conll`: automatic part-of-speech tags by CoreNLP.
 
-Treebank  | #Train    |  #Dev | #Test
+Treebank  | #Train    |  #Dev | #Test | token / sent
 ----------| --------- | ---------- | -----
-english-wsj  | 39,832  |  1,700 | 2,416
-english    |  58,619 | 1,700 | 2,416
-chinese   | 24,349 | 2,079 | 2,796
-german | 14,118 | 799 | 977
-french | 14,554 | 1,596 | 298
-spanish | 14,187 | 1,552 | 274
+english-wsj  | 39,832  |  1,700 | 2,416 | 23.9
+english    |  58,619 | 1,700 | 2,416 | 23.3
+chinese   | 24,349 | 2,079 | 2,796 | 27.3
+german | 14,118 | 799 | 977 | 19.1
+french | 14,554 | 1,596 | 298 | 24.5
+spanish | 14,187 | 1,552 | 274 | 27.0
 
 
 #### English (wsj only)
@@ -57,4 +57,27 @@ spanish | 14,187 | 1,552 | 274
 * `UD v1.3`
 
 
-## Performance
+## Models
+
+All the models can be trained using the following command:
+```
+THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32
+python train.py -l <lang> -d <data_path> --job_id <model_name>
+```
+* `data_path = /u/nlp/data/dependency_treebanks/corenlp-3.7.0/english-wsj` (or `english`, `chinese`, `german`, `french`, `spanish`).
+* All the models are basically the same as that in original paper (one layer with cubic function), except that **we increase `hidden_size` to `1000`**.
+* We used automatic part-of-speech tags (i.e., the `train.conll`, `dev.conll` and `test.conll` files) for training all models.
+    * For Chinese and German, there is a big gap (5-10%) in UAS/LAS if we train models using gold or automatic POS tags. We attribute it to POS accuracy.
+* The performance and speed of the final models are given below:
+    * Punctuations are excluded in evaluation (see `utils.punct` function).
+    * The models are trained using Python code and we tested it in Java. We found that the results differ slightly, so there is still some subtitle difference between the two implementations (and we haven't fixed it yet).
+    * The speeds were tested on `jagupard6`.
+
+Treebank    | UAS (dev) | LAS (dev) | UAS (test) | LAS (test) | sent/s
+----------  | --------- | ---------- | -----
+english-wsj |   92.46	| 90.20	| 92.33	| 90.18	| 140
+english |   92.24	| 89.97	| 92.34	| 90.27	| 132
+chinese | 80.49   | 75.44	| 80.85	| 75.66	| 100
+german | 79.73	| 73.54	| 75.84	| 69.26	| 197
+french  | 89.14	| 86.10	| 85.53	| 81.02	| 121
+spanish | 88.31	| 84.84	| 85.50	| 81.42	| 118

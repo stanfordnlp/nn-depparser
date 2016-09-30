@@ -62,7 +62,7 @@ def read_log(uid):
                     train_acc.append(float(sline.split(' ')[-1]))
                 if 'Dev acc' in sline:
                     dev_acc.append(float(sline.split(' ')[-1]))
-                if ('UAS' in sline) and ('Best' not in sline):
+                if ('UAS' in sline) and ('Best' not in sline) and (len(dev_UAS) < len(train_acc)):
                     if 'LAS' in sline:
                         dev_UAS.append(float(sline.split(' ')[-3][:-1]))
                         dev_LAS.append(float(sline.split(' ')[-1]))

@@ -16,6 +16,7 @@ import lasagne
 import numpy as np
 from collections import Counter
 
+
 class CubicLayer(lasagne.layers.Layer):
     def get_output_for(self, input, **kwargs):
         return input * input * input
