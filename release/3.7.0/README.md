@@ -66,6 +66,7 @@ python train.py -l <lang> -d <data_path> --job_id <model_name>
 ```
 * `data_path = /u/nlp/data/dependency_treebanks/corenlp-3.7.0/english-wsj` (or `english`, `chinese`, `german`, `french`, `spanish`).
 * All the models are basically the same as that in the original paper (one layer with cubic function), except that **we increase `hidden_size` to `1000`**.
+* By default, we use the `/u/nlp/data/dependency_treebanks/embeddings/en-cw.txt` word embeddings for initialization, but for Chinese, we use `/u/nlp/data/dependency_treebanks/embeddings/zh-word2vec.txt`.
 * We used automatic part-of-speech tags (i.e., the `train.conll`, `dev.conll` and `test.conll` files) for training all models.
     * For Chinese and German, there is a big gap (5-10%) in UAS/LAS if we train models using gold or automatic POS tags. We attribute it to POS accuracy.
 * The performance and speeds of the final models are given below:
