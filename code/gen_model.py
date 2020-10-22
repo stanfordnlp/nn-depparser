@@ -5,11 +5,12 @@
     This is very ad-hoc, to make sure that it is consistent with nndep java code.
 """
 
+import argparse
 import sys
 import utils
 from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
 
-OUTPUT_FILE = 'output.txt'
+#OUTPUT_FILE = 'output.txt'
 MAX_PRECOMPUTED = 100000
 INPUT_DROPOUT = 0.2
 
@@ -56,10 +57,14 @@ def get_precomputed(wid, pid, lid, max_precomputed):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) <= 1:
-        sys.exit('Usage: python gen_model.py model.pkl.gz')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-o', '--output', help='where to output converted model', default='output.txt')
+    parser.add_argument('model_file')
+    args = parser.parse_args()
 
-    model = utils.load_params(sys.argv[1])
+    #if len(sys.argv) <= 1:
+        #sys.exit('Usage: python gen_model.py model.pkl.gz')
+    model = utils.load_params(args.model_file)
     params = model['params']
     id2tok = model['id2tok']
     tok2id = {v: k for (k, v) in id2tok.items()}
@@ -89,7 +94,7 @@ if __name__ == '__main__':
 
     pre_computed = get_precomputed(wid, pid, lid, MAX_PRECOMPUTED)
 
-    f_out = open(OUTPUT_FILE, 'w')
+    f_out = open(args.output, 'w')
     f_out.write("dict=%d\n" % len(wid))
     f_out.write("pos=%d\n" % len(pid))
     f_out.write("label=%d\n" % len(lid))
