@@ -8,11 +8,14 @@ import time
 
 import config
 from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
-from config import _floatX
+#from config import _floatX
 
-import theano
-import theano.tensor as T
-import lasagne
+from model import FastAccurateParserModel
+import tensor
+
+#import theano
+#import theano.tensor as T
+#import lasagne
 import numpy as np
 from collections import Counter
 
@@ -92,6 +95,9 @@ class Parser:
         logging.info('#transitions: %d' % self.n_trans)
         logging.info('#features: %d' % self.n_features)
         logging.info('#tokens: %d' % self.n_tokens)
+
+        self.optimizer = optim.AdamW(self.model.parameters())
+
 
     def vectorize(self, examples):
         """
@@ -239,6 +245,46 @@ class Parser:
         logging.info('#Instances: %d' % len(all_instances))
         return all_instances
 
+    def setup_model(self, embedding_file=None):
+        embeddings = torch.normal(
+            mean=torch.zeros([self.n_tokens, self.embedding_size]), 
+            std=torch.ones([self.n_tokens, self.embedding_size])*0.01
+        )
+        n_pre_trained = 0
+        if embedding_file:
+            pretrained_embeddings = utils.get_embeddings(embedding_file)
+            for token in self.tok2id:
+                i = self.tok2id[token]
+                if token in pretrained_embeddings:
+                    embeddings[i] = torch.tensor(pretrained_embeddings[token])
+                    n_pre_trained += 1
+                elif token.lower() in pretrained_embeddings:
+                    embeddings[i] = torch.tensor(pretrained_embeddings[token.lower()])
+                    n_pre_trained += 1
+            logging.info('pre-trained: %d / %d = %.2f%%' % (n_pre_trained, self.n_tokens, n_pre_trained * 100.0 / self.n_tokens))
+        self.model = FastAccurateParserModel(
+            vocab_size=self.n_tokens, 
+            e_dim=self.embedding_size, 
+            num_feats=self.n_features, 
+            h_dim=self.hidden_size, 
+            num_labels=self.n_trans, 
+            dropout=0.5, 
+            embeddings=embeddings
+        )
+
+    def train_step(self, x, y):
+        self.model.train()
+        self.optimizer.zero_grad()
+        y_hat = self.model(x)
+        loss = self.model.loss(y_hat, y)
+        loss.backward
+        self.optimizer.step()
+        
+    def predict(self, x, legal_labels):
+        self.model.eval()
+        legal_logits = self.model(x) * legal_labels
+        return torch.argmax(legal_logits, dim=1)
+
     def build_fn(self, emb={}, pre_trained_params=None):
         in_x = T.imatrix('x')
         in_y = T.ivector('y')
@@ -343,6 +389,10 @@ class Parser:
                 mb_l = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
                 mb_l = np.array(mb_l).astype(_floatX)
                 pred = self.pred_fn(mb_x, mb_l)
+                logging.info("mb_x: " + str(mb_x.shape))
+                logging.info("legal labels shape: "+ str(mb_l.shape))
+                logging.info("prediction shape: " + str(pred.shape))
+                logging.info(pred)
                 for k, tran in zip(mb, pred):
                     i = ind[k]
                     if tran == self.n_trans - 1:
@@ -392,27 +442,29 @@ def main(args):
     dev_set = nndep.vectorize(dev_set)
 
     # Load embedding file
-    if args.embedding_file is None:
-        embeddings = {}
-    else:
-        logging.info('Load embedding file: %s' % args.embedding_file)
-        embeddings = utils.get_embeddings(args.embedding_file)
-        for w, w_emb in embeddings.items():
-            assert len(w_emb) == args.embedding_size
-        logging.info('#words = %d, dim = %d' % (len(embeddings), args.embedding_size))
-        logging.info('-' * 100)
+    #if args.embedding_file is None:
+        #embeddings = {}
+    #else:
+        #logging.info('Load embedding file: %s' % args.embedding_file)
+        #embeddings = utils.get_embeddings(args.embedding_file)
+        #for w, w_emb in embeddings.items():
+            #assert len(w_emb) == args.embedding_size
+        #logging.info('#words = %d, dim = %d' % (len(embeddings), args.embedding_size))
+        #logging.info('-' * 100)
 
     # Build functions
     logging.info('Build functions...')
-    if args.pre_trained is not None:
-        dic = utils.load_params(args.pre_trained)
-        pre_trained_params = dic['params']
-        for i in nndep.id2tok:
-            assert (i in dic['id2tok']) and (nndep.id2tok[i] == dic['id2tok'][i])
-        logging.info('Load pre-trained model: %s' % args.pre_trained)
-    else:
-        pre_trained_params = None
-    nndep.build_fn(embeddings, pre_trained_params)
+    #if args.pre_trained is not None:
+        #dic = utils.load_params(args.pre_trained)
+        #pre_trained_params = dic['params']
+        #for i in nndep.id2tok:
+            #assert (i in dic['id2tok']) and (nndep.id2tok[i] == dic['id2tok'][i])
+        #logging.info('Load pre-trained model: %s' % args.pre_trained)
+    #else:
+        #pre_trained_params = None
+    #nndep.build_fn(embeddings, pre_trained_params)
+    logging.info('Setting up model...')
+    nndep.setup_model(args.embedding_file)
     logging.info('Done.')
 
     logging.info('Initial testing...')
