@@ -7,12 +7,11 @@ class FastAccurateParserModel(nn.Module):
     PyTorch implementation of model from A Fast and Accurate Dependency Parser using Neural Networks.
     """
 
-    def __init__(self, vocab_size, e_dim, num_feats, h_dim, num_labels, dropout=0.0, embeddings=None):
+    def __init__(self, vocab_size, e_dim, num_feats, h_dim, num_labels, embedding_dropout=0.2, network_dropout=0.5, embeddings=None):
         super(FastAccurateParserModel, self).__init__()
         self.e_dim = e_dim
         self.h_dim = h_dim
         self.loss_train = nn.CrossEntropyLoss()
-        self.dropout_prob = dropout
         
         if embeddings == None:
             self.embeddings = nn.Embedding(num_embeddings=vocab_size, embedding_dim=e_dim)
@@ -28,11 +27,13 @@ class FastAccurateParserModel(nn.Module):
         self.label_layer = nn.Linear(h_dim, num_labels)
 
         # dropout
-        self.dropout = nn.Dropout(p=self.dropout_prob)
+        self.embedding_dropout = nn.Dropout(p=embedding_dropout)
+        self.network_dropout = nn.Dropout(p=network_dropout)
 
     def forward(self, x):
         #print(f"x in forward: {x.size()}")
         x = self.embeddings(x)
+        x = self.embedding_dropout(x)
         x = torch.reshape(x, (x.size()[0], x.size()[1] * x.size()[2]))
         #print(f"after embedding expansion: {x.size()}")
         # linear layer
@@ -41,6 +42,7 @@ class FastAccurateParserModel(nn.Module):
         # cubic nonlinearity
         h = h * h * h
         # project to tag space
+        h = self.network_dropout(h)
         p = self.label_layer(h)
 
         return p

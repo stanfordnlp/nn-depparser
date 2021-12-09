@@ -14,16 +14,8 @@ from model import FastAccurateParserModel
 import torch
 import torch.optim as optim
 
-#import theano
-#import theano.tensor as T
-#import lasagne
 import numpy as np
 from collections import Counter
-
-
-#class CubicLayer(lasagne.layers.Layer):
-    #def get_output_for(self, input, **kwargs):
-        #return input * input * input
 
 
 class Parser:
@@ -256,7 +248,7 @@ class Parser:
             for token in self.tok2id:
                 i = self.tok2id[token]
                 if token in pretrained_embeddings:
-                    embeddings[i] = torch.tensor(pretrained_embeddings[token])
+                    embeddings[i] = torch.tensor(pretrained_embeddings[token], dtype=torch.float32)
                     n_pre_trained += 1
                 elif token.lower() in pretrained_embeddings:
                     embeddings[i] = torch.tensor(pretrained_embeddings[token.lower()])
@@ -268,25 +260,26 @@ class Parser:
             num_feats=self.n_features, 
             h_dim=self.hidden_size, 
             num_labels=self.n_trans, 
-            dropout=0.2, 
+            embedding_dropout=0.2,
+            network_dropout=0.5, 
             embeddings=embeddings
-        )
-        self.optimizer = optim.AdamW(self.model.parameters())
+        ).to(torch.device("cuda"))
+        self.optimizer = optim.Adagrad(self.model.parameters(), lr=0.01, weight_decay=.0001)
 
     def train_step(self, x, y):
         self.model.train()
         self.optimizer.zero_grad()
         y_hat = self.model(x)
-        loss = self.model.loss(y_hat, torch.tensor(y))
-        loss.backward
+        loss = self.model.loss(y_hat, torch.tensor(y).to(torch.device("cuda")))
+        loss.backward()
         self.optimizer.step()
         return loss
         
     def predict(self, x, legal_labels):
         self.model.eval()
-        #print(x.size())
-        #print(legal_labels.size())
-        legal_logits = self.model(x) * legal_labels
+        logits = self.model(x)
+        legal_logits = logits.masked_fill(~legal_labels, -float('inf'))
+       
         return torch.argmax(legal_logits, dim=1)
 
     def build_fn(self, emb={}, pre_trained_params=None):
@@ -389,14 +382,9 @@ class Parser:
             for mb in utils.get_minibatches(len(ind), eval_batch_size, shuffle=False):
                 mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]],
                                               arcs[ind[k]], eval_set[ind[k]]) for k in mb]
-                mb_x = torch.tensor(mb_x)
-                mb_l = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
-                mb_l = torch.tensor(mb_l)
+                mb_x = torch.tensor(mb_x).to(torch.device("cuda"))
+                mb_l = torch.tensor([self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb], dtype=torch.bool).to(torch.device("cuda"))
                 pred = self.predict(mb_x, mb_l)
-                #logging.info("mb_x: " + str(mb_x.shape))
-                #logging.info("legal labels shape: "+ str(mb_l.shape))
-                #logging.info("prediction shape: " + str(pred.shape))
-                #logging.info(pred)
                 for k, tran in zip(mb, pred):
                     i = ind[k]
                     if tran == self.n_trans - 1:
@@ -492,7 +480,7 @@ def main(args):
     for epoch in range(args.n_epoches):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
-            train_x = torch.tensor([train_examples[t][0] for t in minibatch])
+            train_x = torch.tensor([train_examples[t][0] for t in minibatch]).to(torch.device("cuda"))
             #train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
             train_y = [train_examples[t][2] for t in minibatch]
             train_loss = nndep.train_step(train_x, train_y)
@@ -510,20 +498,20 @@ def main(args):
                 ind = np.random.choice(n_train, size, replace=False)
                 all_acc = 0.0
                 for mb in utils.get_minibatches(size, args.batch_size, shuffle=False):
-                    train_x = torch.tensor([train_examples[ind[t]][0] for t in mb])
-                    train_l = torch.tensor([train_examples[ind[t]][1] for t in mb])
+                    train_x = torch.tensor([train_examples[ind[t]][0] for t in mb]).to(torch.device("cuda"))
+                    train_l = torch.tensor([train_examples[ind[t]][1] for t in mb]).to(torch.device("cuda")).type(torch.bool)
                     train_y = [train_examples[ind[t]][2] for t in mb]
                     predictions = nndep.predict(train_x, train_l)
-                    all_acc += len(mb) * torch.sum((predictions == torch.tensor(train_y)).int()) / len(train_y)
+                    all_acc += torch.sum((predictions == torch.tensor(train_y).to(torch.device("cuda")).int()))
                 logging.info('Train accuracy: %.4f' % (all_acc / size))
 
                 all_acc = 0.0
                 for mb in utils.get_minibatches(n_dev, args.batch_size, shuffle=False):
-                    dev_x = torch.tensor([dev_examples[t][0] for t in mb])
-                    dev_l = torch.tensor([dev_examples[t][1] for t in mb])
+                    dev_x = torch.tensor([dev_examples[t][0] for t in mb]).to(torch.device("cuda"))
+                    dev_l = torch.tensor([dev_examples[t][1] for t in mb]).to(torch.device("cuda")).type(torch.bool)
                     dev_y = [dev_examples[t][2] for t in mb]
                     predictions = nndep.predict(dev_x, dev_l)
-                    all_acc += len(mb) * torch.sum((predictions == torch.tensor(dev_y)).int()) / len(dev_y)
+                    all_acc += torch.sum((predictions == torch.tensor(dev_y).to(torch.device("cuda")).int()))
                 logging.info('Dev accuracy:  %.4f' % (all_acc / n_dev))
 
                 UAS, LAS = nndep.parse(dev_set)
