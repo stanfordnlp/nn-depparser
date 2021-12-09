@@ -488,11 +488,11 @@ def main(args):
     for epoch in range(args.n_epoches):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
-            train_x = np.array([train_examples[t][0] for t in minibatch]).astype('int32')
-            train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
+            train_x = torch.tensor([train_examples[t][0] for t in minibatch])
+            #train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
             train_y = [train_examples[t][2] for t in minibatch]
-
-            train_loss = nndep.train_fn(train_x, train_y)
+            nndep.train_step(train_x, train_y)
+            #train_loss = nndep.train_fn(train_x, train_y)
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
 
@@ -505,18 +505,20 @@ def main(args):
                 ind = np.random.choice(n_train, size, replace=False)
                 all_acc = 0.0
                 for mb in utils.get_minibatches(size, args.batch_size, shuffle=False):
-                    train_x = np.array([train_examples[ind[t]][0] for t in mb]).astype('int32')
-                    train_l = np.array([train_examples[ind[t]][1] for t in mb]).astype(_floatX)
+                    train_x = torch.tensor([train_examples[ind[t]][0] for t in mb])
+                    train_l = torch.tensor([train_examples[ind[t]][1] for t in mb])
                     train_y = [train_examples[ind[t]][2] for t in mb]
-                    all_acc += nndep.test_fn(train_x, train_l, train_y) * len(mb)
+                    predictions = self.predict(train_x, train_l)
+                    all_acc += len(mb) * torch.sum((predictions == torch.tensor(train_y)).int()) / len(train_y)
                 logging.info('Train accuracy: %.4f' % (all_acc / size))
 
                 all_acc = 0.0
                 for mb in utils.get_minibatches(n_dev, args.batch_size, shuffle=False):
-                    dev_x = np.array([dev_examples[t][0] for t in mb]).astype('int32')
-                    dev_l = np.array([dev_examples[t][1] for t in mb]).astype(_floatX)
+                    dev_x = torch.tensor([dev_examples[t][0] for t in mb])
+                    dev_l = torch.tensor([dev_examples[t][1] for t in mb])
                     dev_y = [dev_examples[t][2] for t in mb]
-                    all_acc += nndep.test_fn(dev_x, dev_l, dev_y) * len(mb)
+                    predictions = self.predict(dev_x, dev_l)
+                    all_acc += len(mb) * torch.sum((predictions == torch.tensor(dev_y)).int()) / len(dev_y)
                 logging.info('Dev accuracy:  %.4f' % (all_acc / n_dev))
 
                 UAS, LAS = nndep.parse(dev_set)
@@ -525,13 +527,13 @@ def main(args):
                     best_UAS = UAS
                     logging.info('Best UAS: epoch = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
                                  % (epoch, n_updates, UAS * 100.0, LAS * 100.0))
-                    if args.model_file is not None:
-                        logging.info('Saving new model..')
-                        utils.save_params(args.model_file, nndep.params,
-                                          epoch=epoch,
-                                          n_updates=n_updates,
-                                          id2tok=nndep.id2tok,
-                                          root_label=nndep.root_label)
+                    #if args.model_file is not None:
+                        #logging.info('Saving new model..')
+                        #utils.save_params(args.model_file, nndep.params,
+                                          #epoch=epoch,
+                                          #n_updates=n_updates,
+                                          #id2tok=nndep.id2tok,
+                                          #root_label=nndep.root_label)
 
 if __name__ == '__main__':
     args = config.get_args()
@@ -544,8 +546,9 @@ if __name__ == '__main__':
         args.log_file = None
         args.model_file = None
 
-    np.random.seed(args.random_seed)
-    lasagne.random.set_rng(np.random.RandomState(args.random_seed))
+    torch.manual_seed(args.random_seed)
+    #np.random.seed(args.random_seed)
+    #lasagne.random.set_rng(np.random.RandomState(args.random_seed))
 
     if args.log_file is None:
         logging.basicConfig(level=logging.DEBUG,
