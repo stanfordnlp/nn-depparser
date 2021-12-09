@@ -11,7 +11,8 @@ from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
 #from config import _floatX
 
 from model import FastAccurateParserModel
-import tensor
+import torch
+import torch.optim as optim
 
 #import theano
 #import theano.tensor as T
@@ -20,9 +21,9 @@ import numpy as np
 from collections import Counter
 
 
-class CubicLayer(lasagne.layers.Layer):
-    def get_output_for(self, input, **kwargs):
-        return input * input * input
+#class CubicLayer(lasagne.layers.Layer):
+    #def get_output_for(self, input, **kwargs):
+        #return input * input * input
 
 
 class Parser:
@@ -96,7 +97,6 @@ class Parser:
         logging.info('#features: %d' % self.n_features)
         logging.info('#tokens: %d' % self.n_tokens)
 
-        self.optimizer = optim.AdamW(self.model.parameters())
 
 
     def vectorize(self, examples):
@@ -138,7 +138,7 @@ class Parser:
             p_features = [self.P_NULL] * (3 - len(stack)) + [ex['pos'][x] for x in stack[-3:]]
             p_features += [ex['pos'][x] for x in buf[:3]] + [self.P_NULL] * (3 - len(buf))
 
-        for i in xrange(2):
+        for i in range(2):
             if i < len(stack):
                 k = stack[-i-1]
                 lc = get_lc(k)
@@ -217,10 +217,10 @@ class Parser:
 
             # arcs = {(h, t, label)}
             stack = [0]
-            buf = [i + 1 for i in xrange(n_words)]
+            buf = [i + 1 for i in range(n_words)]
             arcs = []
             instances = []
-            for i in xrange(n_words * 2):
+            for i in range(n_words * 2):
                 gold_t = self.get_oracle(stack, buf, ex)
                 if gold_t is None:
                     break
@@ -245,7 +245,7 @@ class Parser:
         logging.info('#Instances: %d' % len(all_instances))
         return all_instances
 
-    def setup_model(self, embedding_file=None):
+    def setup_model_and_optimizer(self, embedding_file=None):
         embeddings = torch.normal(
             mean=torch.zeros([self.n_tokens, self.embedding_size]), 
             std=torch.ones([self.n_tokens, self.embedding_size])*0.01
@@ -268,20 +268,24 @@ class Parser:
             num_feats=self.n_features, 
             h_dim=self.hidden_size, 
             num_labels=self.n_trans, 
-            dropout=0.5, 
+            dropout=0.2, 
             embeddings=embeddings
         )
+        self.optimizer = optim.AdamW(self.model.parameters())
 
     def train_step(self, x, y):
         self.model.train()
         self.optimizer.zero_grad()
         y_hat = self.model(x)
-        loss = self.model.loss(y_hat, y)
+        loss = self.model.loss(y_hat, torch.tensor(y))
         loss.backward
         self.optimizer.step()
+        return loss
         
     def predict(self, x, legal_labels):
         self.model.eval()
+        #print(x.size())
+        #print(legal_labels.size())
         legal_logits = self.model(x) * legal_labels
         return torch.argmax(legal_logits, dim=1)
 
@@ -309,7 +313,7 @@ class Parser:
         if self.input_dropout_rate > 0:
             network = lasagne.layers.DropoutLayer(network, p=self.input_dropout_rate)
 
-        for _ in xrange(self.n_layers):
+        for _ in range(self.n_layers):
             if self.nonlinearity == 'relu':
                 network = lasagne.layers.DenseLayer(network, self.hidden_size,
                                                     b=lasagne.init.Constant(self.b_init),
@@ -371,12 +375,12 @@ class Parser:
         stack = []
         buf = []
         arcs = []
-        for i in xrange(len(eval_set)):
+        for i in range(len(eval_set)):
             n_words = len(eval_set[i]['word']) - 1
             ind.append(i)
             steps.append(n_words * 2)
             stack.append([0])
-            buf.append([i + 1 for i in xrange(n_words)])
+            buf.append([i + 1 for i in range(n_words)])
             arcs.append([])
 
         step = 0
@@ -385,14 +389,14 @@ class Parser:
             for mb in utils.get_minibatches(len(ind), eval_batch_size, shuffle=False):
                 mb_x = [self.extract_features(stack[ind[k]], buf[ind[k]],
                                               arcs[ind[k]], eval_set[ind[k]]) for k in mb]
-                mb_x = np.array(mb_x).astype('int32')
+                mb_x = torch.tensor(mb_x)
                 mb_l = [self.legal_labels(stack[ind[k]], buf[ind[k]]) for k in mb]
-                mb_l = np.array(mb_l).astype(_floatX)
-                pred = self.pred_fn(mb_x, mb_l)
-                logging.info("mb_x: " + str(mb_x.shape))
-                logging.info("legal labels shape: "+ str(mb_l.shape))
-                logging.info("prediction shape: " + str(pred.shape))
-                logging.info(pred)
+                mb_l = torch.tensor(mb_l)
+                pred = self.predict(mb_x, mb_l)
+                #logging.info("mb_x: " + str(mb_x.shape))
+                #logging.info("legal labels shape: "+ str(mb_l.shape))
+                #logging.info("prediction shape: " + str(pred.shape))
+                #logging.info(pred)
                 for k, tran in zip(mb, pred):
                     i = ind[k]
                     if tran == self.n_trans - 1:
@@ -464,7 +468,7 @@ def main(args):
         #pre_trained_params = None
     #nndep.build_fn(embeddings, pre_trained_params)
     logging.info('Setting up model...')
-    nndep.setup_model(args.embedding_file)
+    nndep.setup_model_and_optimizer(args.embedding_file)
     logging.info('Done.')
 
     logging.info('Initial testing...')
@@ -491,8 +495,9 @@ def main(args):
             train_x = torch.tensor([train_examples[t][0] for t in minibatch])
             #train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
             train_y = [train_examples[t][2] for t in minibatch]
-            nndep.train_step(train_x, train_y)
+            train_loss = nndep.train_step(train_x, train_y)
             #train_loss = nndep.train_fn(train_x, train_y)
+            
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
 
@@ -508,7 +513,7 @@ def main(args):
                     train_x = torch.tensor([train_examples[ind[t]][0] for t in mb])
                     train_l = torch.tensor([train_examples[ind[t]][1] for t in mb])
                     train_y = [train_examples[ind[t]][2] for t in mb]
-                    predictions = self.predict(train_x, train_l)
+                    predictions = nndep.predict(train_x, train_l)
                     all_acc += len(mb) * torch.sum((predictions == torch.tensor(train_y)).int()) / len(train_y)
                 logging.info('Train accuracy: %.4f' % (all_acc / size))
 
@@ -517,7 +522,7 @@ def main(args):
                     dev_x = torch.tensor([dev_examples[t][0] for t in mb])
                     dev_l = torch.tensor([dev_examples[t][1] for t in mb])
                     dev_y = [dev_examples[t][2] for t in mb]
-                    predictions = self.predict(dev_x, dev_l)
+                    predictions = nndep.predict(dev_x, dev_l)
                     all_acc += len(mb) * torch.sum((predictions == torch.tensor(dev_y)).int()) / len(dev_y)
                 logging.info('Dev accuracy:  %.4f' % (all_acc / n_dev))
 

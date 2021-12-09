@@ -8,13 +8,13 @@ class FastAccurateParserModel(nn.Module):
     """
 
     def __init__(self, vocab_size, e_dim, num_feats, h_dim, num_labels, dropout=0.0, embeddings=None):
-        super(FastAccurateParser, self).__init__()
+        super(FastAccurateParserModel, self).__init__()
         self.e_dim = e_dim
         self.h_dim = h_dim
         self.loss_train = nn.CrossEntropyLoss()
         self.dropout_prob = dropout
         
-        if not embeddings:
+        if embeddings == None:
             self.embeddings = nn.Embedding(num_embeddings=vocab_size, embedding_dim=e_dim)
         else:
             # if weights provided, use those
@@ -31,8 +31,12 @@ class FastAccurateParserModel(nn.Module):
         self.dropout = nn.Dropout(p=self.dropout_prob)
 
     def forward(self, x):
+        #print(f"x in forward: {x.size()}")
         x = self.embeddings(x)
+        x = torch.reshape(x, (x.size()[0], x.size()[1] * x.size()[2]))
+        #print(f"after embedding expansion: {x.size()}")
         # linear layer
+        #print(f"linear layer shape: {self.linear_layer.weight.size()}")
         h = self.linear_layer(x)
         # cubic nonlinearity
         h = h * h * h

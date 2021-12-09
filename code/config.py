@@ -1,10 +1,10 @@
 import argparse
 import os
-import theano
+#import theano
 from sys import platform as _platform
 
 
-_floatX = theano.config.floatX
+#_floatX = theano.config.floatX
 
 DATA_DIR = '/Users/danqi/Documents/research/datasets/dependency-treebanks/' \
     if _platform == 'darwin' \
