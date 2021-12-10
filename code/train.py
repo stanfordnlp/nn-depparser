@@ -264,7 +264,7 @@ class Parser:
             network_dropout=0.5, 
             embeddings=embeddings
         ).to(torch.device("cuda"))
-        self.optimizer = optim.Adagrad(self.model.parameters(), lr=0.01, weight_decay=.0001)
+        self.optimizer = optim.Adagrad(self.model.parameters(), lr=0.01, weight_decay=.0001, eps=1e-06)
 
     def train_step(self, x, y):
         self.model.train()
