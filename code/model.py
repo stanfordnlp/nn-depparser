@@ -22,9 +22,15 @@ class FastAccurateParserModel(nn.Module):
         # linear layer: xW + b1
         input_dim = e_dim * num_feats
         self.linear_layer = nn.Linear(input_dim, h_dim)
+        with torch.no_grad():
+            nn.init.xavier_uniform(self.linear_layer.weight)
+        with torch.no_grad():
+            self.linear_layer.bias.zero_()
 
         # project to label space: hU + b2
-        self.label_layer = nn.Linear(h_dim, num_labels)
+        self.label_layer = nn.Linear(h_dim, num_labels, bias=False)
+        with torch.no_grad():
+            nn.init.xavier_uniform(self.label_layer.weight)
 
         # dropout
         self.embedding_dropout = nn.Dropout(p=embedding_dropout)
