@@ -1,27 +1,36 @@
+from stanza.server import CoreNLPClient
 
 from collections import Counter
 import numpy as np
 import logging
 import gzip
 import pickle
+import re
+from tqdm import tqdm
 
+token_rgx = re.compile("^[0-9]+\t.*")
+mwt_rgx = re.compile("^[0-9]+\-[0-9]+\t.*")
 
-def read_conll(in_file, lowercase=False, max_example=None):
+def read_conll(in_file, lowercase=False, max_example=None, corenlp_tags=False, lang=None):
     """
         Load parse trees from CoNLL file.
-        See CoNLL-X format at http://ilk.uvt.nl/conll/.
+        See CoNLL-U format at https://universaldependencies.org/format.html
+
+        Optionally can run CoreNLP tagging. Must specify lang.
     """
     examples = []
     with open(in_file) as f:
         word, pos, head, label = [], [], [], []
         for line in f.readlines():
             sp = line.strip().split('\t')
-            if len(sp) == 10:
+            if len(sp) == 10 and token_rgx.match(line):
                 if '-' not in sp[0]:
                     word.append(sp[1].lower() if lowercase else sp[1])
                     pos.append(sp[4])
                     head.append(int(sp[6]))
                     label.append(sp[7])
+            elif mwt_rgx.match(line):
+                continue
             elif len(word) > 0:
                 examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
                 word, pos, head, label = [], [], [], []
@@ -29,6 +38,18 @@ def read_conll(in_file, lowercase=False, max_example=None):
                     break
         if len(word) > 0:
             examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
+    if corenlp_tags:
+        assert lang
+        from stanza.server import CoreNLPClient
+        with CoreNLPClient(properties=lang, annotators="tokenize,ssplit,pos", pretokenized=True, 
+                           classpath="$CLASSPATH", be_quiet=True) as client:
+            for example in tqdm(examples):
+                text = " ".join(example['word'])
+                ann = client.annotate(text)
+                tokens = [tok.value for tok in ann.sentence[0].token]
+                tags = [tok.pos for tok in ann.sentence[0].token]
+                assert tokens == example['word']
+                example['pos'] = tags
     logging.info('#examples: %d' % len(examples))
     return examples
 
