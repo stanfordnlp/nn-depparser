@@ -23,27 +23,24 @@ class FastAccurateParserModel(nn.Module):
         input_dim = e_dim * num_feats
         self.linear_layer = nn.Linear(input_dim, h_dim)
         with torch.no_grad():
-            nn.init.xavier_uniform(self.linear_layer.weight)
+            nn.init.xavier_uniform_(self.linear_layer.weight)
         with torch.no_grad():
             self.linear_layer.bias.zero_()
 
         # project to label space: hU + b2
         self.label_layer = nn.Linear(h_dim, num_labels, bias=False)
         with torch.no_grad():
-            nn.init.xavier_uniform(self.label_layer.weight)
-
+            nn.init.xavier_uniform_(self.label_layer.weight)
+        
         # dropout
         self.embedding_dropout = nn.Dropout(p=embedding_dropout)
         self.network_dropout = nn.Dropout(p=network_dropout)
 
     def forward(self, x):
-        #print(f"x in forward: {x.size()}")
         x = self.embeddings(x)
         x = self.embedding_dropout(x)
         x = torch.reshape(x, (x.size()[0], x.size()[1] * x.size()[2]))
-        #print(f"after embedding expansion: {x.size()}")
         # linear layer
-        #print(f"linear layer shape: {self.linear_layer.weight.size()}")
         h = self.linear_layer(x)
         # cubic nonlinearity
         h = h * h * h
