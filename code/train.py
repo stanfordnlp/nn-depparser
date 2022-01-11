@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os
+import shutil
 import sys
 import utils
 import logging
@@ -45,6 +46,7 @@ class Parser:
         self.nonlinearity = args.nonlinearity
         self.optimizer = args.optimizer
         self.learning_rate = args.learning_rate
+        self.epsilon = args.epsilon
         self.dropout_rate = args.dropout_rate
         self.input_dropout_rate = args.input_dropout_rate
         self.b_init = args.b_init
@@ -251,7 +253,7 @@ class Parser:
                     embeddings[i] = torch.tensor(pretrained_embeddings[token], dtype=torch.float32)
                     n_pre_trained += 1
                 elif token.lower() in pretrained_embeddings:
-                    embeddings[i] = torch.tensor(pretrained_embeddings[token.lower()])
+                    embeddings[i] = torch.tensor(pretrained_embeddings[token.lower()], dtype=torch.float32)
                     n_pre_trained += 1
             logging.info('pre-trained: %d / %d = %.2f%%' % (n_pre_trained, self.n_tokens, n_pre_trained * 100.0 / self.n_tokens))
         self.model = FastAccurateParserModel(
@@ -260,11 +262,16 @@ class Parser:
             num_feats=self.n_features, 
             h_dim=self.hidden_size, 
             num_labels=self.n_trans, 
-            embedding_dropout=0.2,
-            network_dropout=0.5, 
+            embedding_dropout=self.input_dropout_rate,
+            network_dropout=self.dropout_rate, 
             embeddings=embeddings
         ).to(torch.device("cuda"))
-        self.optimizer = optim.Adagrad(self.model.parameters(), lr=0.01, weight_decay=self.l2_reg, eps=1e-03)
+        if self.optimizer == "adagrad":
+            self.optimizer = optim.Adagrad(self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg, eps=self.epsilon)
+        elif self.optimizer == "adamw":
+            self.optimizer = optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg, eps=self.epsilon)
+        elif self.optimizer == "sgd":
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg)
 
     def train_step(self, x, y):
         self.model.train()
@@ -281,6 +288,16 @@ class Parser:
         legal_logits = logits.masked_fill(~legal_labels, -float('inf'))
        
         return torch.argmax(legal_logits, dim=1)
+
+    def save_model_checkpoint(self, model_dir):
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir, exist_ok=True)
+        with open(f"{model_dir}/tok2id.json", "w") as tok2id_file:
+            tok2id_file.write(json.dumps(self.tok2id))
+        model_checkpoint = {
+            "model_state_dict": self.model.state_dict()
+        }
+        torch.save(model_checkpoint, f"{model_dir}/model.pt")
 
     def build_fn(self, emb={}, pre_trained_params=None):
         in_x = T.imatrix('x')
@@ -481,10 +498,8 @@ def main(args):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
             train_x = torch.tensor([train_examples[t][0] for t in minibatch]).to(torch.device("cuda"))
-            #train_l = np.array([train_examples[t][1] for t in minibatch]).astype(_floatX)
             train_y = [train_examples[t][2] for t in minibatch]
             train_loss = nndep.train_step(train_x, train_y)
-            #train_loss = nndep.train_fn(train_x, train_y)
             
             logging.info('Epoch = %d, iter = %d (max. = %d), loss = %.2f, elapsed time = %.2f (s)' %
                          (epoch, index, len(minibatches), train_loss, time.time() - start_time))
@@ -520,13 +535,8 @@ def main(args):
                     best_UAS = UAS
                     logging.info('Best UAS: epoch = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
                                  % (epoch, n_updates, UAS * 100.0, LAS * 100.0))
-                    #if args.model_file is not None:
-                        #logging.info('Saving new model..')
-                        #utils.save_params(args.model_file, nndep.params,
-                                          #epoch=epoch,
-                                          #n_updates=n_updates,
-                                          #id2tok=nndep.id2tok,
-                                          #root_label=nndep.root_label)
+                    if args.save_path is not None:
+                        nndep.save_model_checkpoint(args.save_path)
 
 if __name__ == '__main__':
     args = config.get_args()
