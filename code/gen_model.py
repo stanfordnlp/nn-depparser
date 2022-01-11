@@ -6,9 +6,12 @@
 """
 
 import argparse
+import json
 import sys
 import utils
 from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
+
+import torch
 
 #OUTPUT_FILE = 'output.txt'
 MAX_PRECOMPUTED = 100000
@@ -35,25 +38,38 @@ def get_precomputed(wid, pid, lid, max_precomputed):
     mapping = {}
     for idx, i in enumerate(wid + pid + lid):
         mapping[i] = idx
-    idx = [18 + k for k in xrange(18)]
+    idx = [18 + k for k in range(18)]
     for i in pid:
         if len(pre_computed) + len(idx) > max_precomputed:
             break
         for k in idx:
             pre_computed.append(mapping[i] * n_tokens + k)
-    idx = [36 + k for k in xrange(12)]
+    idx = [36 + k for k in range(12)]
     for i in lid:
         if len(pre_computed) + len(idx) > max_precomputed:
             break
         for k in idx:
             pre_computed.append(mapping[i] * n_tokens + k)
-    idx = [k for k in xrange(18)]
+    idx = [k for k in range(18)]
     for i in wid:
         if len(pre_computed) + len(idx) > max_precomputed:
             break
         for k in idx:
             pre_computed.append(mapping[i] * n_tokens + k)
     return pre_computed
+
+def load_pytorch_checkpoint(checkpoint_path):
+     checkpoint = torch.load(f"{checkpoint_path}/model.pt", map_location=torch.device("cpu"))
+     tok2id = json.loads(open(f"{checkpoint_path}/tok2id.json").read())
+     print(checkpoint["model_state_dict"].keys())
+     params = []
+     params.append(checkpoint["model_state_dict"]["embeddings.weight"])
+     params.append(torch.transpose(checkpoint["model_state_dict"]["linear_layer.weight"], 0, 1))
+     params.append(checkpoint["model_state_dict"]["linear_layer.bias"])
+     params.append(torch.transpose(checkpoint["model_state_dict"]["label_layer.weight"], 0, 1))
+     id2tok = {v: k for (k, v) in tok2id.items()}
+     return { "params": params, "id2tok": id2tok }
+     
 
 if __name__ == '__main__':
 
@@ -64,7 +80,8 @@ if __name__ == '__main__':
 
     #if len(sys.argv) <= 1:
         #sys.exit('Usage: python gen_model.py model.pkl.gz')
-    model = utils.load_params(args.model_file)
+    model = load_pytorch_checkpoint(args.model_file)
+    #model = utils.load_params(args.model_file)
     params = model['params']
     id2tok = model['id2tok']
     tok2id = {v: k for (k, v) in id2tok.items()}
