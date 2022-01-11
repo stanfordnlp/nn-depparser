@@ -1,10 +1,6 @@
 import argparse
 import os
-#import theano
 from sys import platform as _platform
-
-
-#_floatX = theano.config.floatX
 
 DATA_DIR = '/Users/danqi/Documents/research/datasets/dependency-treebanks/' \
     if _platform == 'darwin' \
@@ -48,6 +44,9 @@ def get_args():
     parser.add_argument('--data_path', '-d',
                         default=os.path.join(DATA_DIR, 'corenlp-3.7.0/english-wsj'),
                         help='Data path')
+    parser.add_argument('--save_path', '-s',
+                        default=None,
+                        help='Where to save model checkpoints')
     parser.add_argument('--train_file',
                         default='train.conll',
                         help='Training file')
@@ -76,6 +75,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=10000, help='Batch size')
     parser.add_argument('--n_epoches', type=int, default=1000, help='Number of epoches')
     parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--epsilon', type=float, default=1e-03)
     parser.add_argument('--eval_iter', type=int, default=100,
                         help='Evaluation on dev set after K updates')
     parser.add_argument('--dropout_rate', type=float, default=0.5,
