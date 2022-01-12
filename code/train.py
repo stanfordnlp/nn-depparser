@@ -38,6 +38,8 @@ class Parser:
         logging.info('Root label: %s' % self.root_label)
         logging.info('Labels (%d): %s' % (len(deprel), ', '.join(deprel)))
 
+        self.job_id = args.job_id
+        self.experiment_dir = args.experiment_dir
         self.unlabeled = args.unlabeled
         self.with_punct = args.with_punct
         self.use_pos = args.use_pos
@@ -289,15 +291,14 @@ class Parser:
        
         return torch.argmax(legal_logits, dim=1)
 
-    def save_model_checkpoint(self, model_dir):
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir, exist_ok=True)
-        with open(f"{model_dir}/tok2id.json", "w") as tok2id_file:
+    def save_model_checkpoint(self, label=None):
+        with open(os.path.join(self.experiment_dir,"tok2id.json"), "w") as tok2id_file:
             tok2id_file.write(json.dumps(self.tok2id))
         model_checkpoint = {
             "model_state_dict": self.model.state_dict()
         }
-        torch.save(model_checkpoint, f"{model_dir}/model.pt")
+        checkpoint_label = "" if not label else f"-{label}" 
+        torch.save(model_checkpoint, os.path.join(self.experiment_dir, f"model{checkpoint_label}.pt"))
 
     def build_fn(self, emb={}, pre_trained_params=None):
         in_x = T.imatrix('x')
@@ -436,21 +437,24 @@ class Parser:
 def main(args):
     # Read examples
     logging.info('Load training data...')
+    if args.corenlp_tags:
+        logging.info('Launching CoreNLP server to generate predicted tags...')
     train_set = utils.read_conll(os.path.join(args.data_path, args.train_file),
                                  lowercase=args.lowercase,
                                  max_example=args.max_train, 
                                  corenlp_tags=args.corenlp_tags,
                                  lang=args.corenlp_tag_lang)
     logging.info('Load development data...')
+    if args.corenlp_tags:
+        logging.info('Launching CoreNLP server to generate predicted tags...')
     dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file),
                                lowercase=args.lowercase,
                                corenlp_tags=args.corenlp_tags,
                                lang=args.corenlp_tag_lang)
-    if args.save_path:
-        with open(f"{save_path}/train-set.json", "w") as train_json:
-            train_json.write(json.dumps(train_set)
-        with open(f"{save_path)/dev-set.json", "w") as dev_json:
-            dev_json.write(json.dumps(dev_set))
+    with open(f"{args.experiment_dir}/train-set.json", "w") as train_json:
+        train_json.write(json.dumps(train_set))
+    with open(f"{args.experiment_dir}/dev-set.json", "w") as dev_json:
+        dev_json.write(json.dumps(dev_set))
     logging.info('-' * 100)
 
     nndep = Parser(train_set, args)
@@ -544,23 +548,20 @@ def main(args):
                     best_UAS = UAS
                     logging.info('Best UAS: epoch = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
                                  % (epoch, n_updates, UAS * 100.0, LAS * 100.0))
-                    if args.save_path is not None:
-                        nndep.save_model_checkpoint(args.save_path)
+                    if args.experiment_dir is not None:
+                        nndep.save_model_checkpoint()
 
 if __name__ == '__main__':
     args = config.get_args()
     args.use_dep = args.use_dep and (not args.unlabeled)
 
-    if args.job_id is not None:
-        args.log_file = os.path.join(config.LOG_DIR, args.job_id + '.txt')
-        args.model_file = os.path.join(config.MODEL_DIR, args.job_id + '.pkl.gz')
-    else:
-        args.log_file = None
-        args.model_file = None
+    # set up logging
+    args.experiment_dir = os.path.join(args.save_path, args.job_id)
+    if not os.path.exists(args.experiment_dir):
+        os.makedirs(args.experiment_dir, exist_ok=True)
+    args.log_file = os.path.join(args.experiment_dir, args.job_id + '.log')
 
     torch.manual_seed(args.random_seed)
-    #np.random.seed(args.random_seed)
-    #lasagne.random.set_rng(np.random.RandomState(args.random_seed))
 
     if args.log_file is None:
         logging.basicConfig(level=logging.DEBUG,
