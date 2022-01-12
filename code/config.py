@@ -24,7 +24,7 @@ def get_args():
     parser.register('type', 'bool', str2bool)
 
     # Basics
-    parser.add_argument('--job_id', '-j', default=None, help='The job id to run.')
+    parser.add_argument('--job_id', '-j', default=None, help='The job id to run.', required=True)
     parser.add_argument('--random_seed', type=int, default=1013, help='Random seed')
     parser.add_argument('--language', '-l', default='english', help='Language')
     parser.add_argument('--with_punct', action="store_true",
@@ -37,7 +37,7 @@ def get_args():
                         help='Keep the most frequent max_words word types, default is None.')
     parser.add_argument('--use_pos', type='bool', default=True,
                         help='Whether to use the part-of-speech tags, default is True.')
-    parser.add_argument('--corenlp_tags', type='bool', action='store_true',
+    parser.add_argument('--corenlp_tags', action='store_true',
                         help='Automatically tag with CoreNLP')
     parser.add_argument('--corenlp_tag_lang', help='CoreNLP language for tagging')
     parser.add_argument('--use_dep', type='bool', default=True,
@@ -49,7 +49,7 @@ def get_args():
                         help='Data path')
     parser.add_argument('--save_path', '-s',
                         default=None,
-                        help='Where to save model checkpoints')
+                        help='Where to save model checkpoints, logs, etc...', required=True)
     parser.add_argument('--train_file',
                         default='train.conll',
                         help='Training file')
