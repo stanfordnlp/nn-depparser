@@ -40,8 +40,7 @@ def read_conll(in_file, lowercase=False, max_example=None, corenlp_tags=False, l
             examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
     if corenlp_tags:
         assert lang
-        from stanza.server import CoreNLPClient
-        with CoreNLPClient(properties=lang, annotators="tokenize,ssplit,pos", pretokenized=True, 
+        with CoreNLPClient(properties=lang, annotators="pos", pretokenized=True, 
                            classpath="$CLASSPATH", be_quiet=True) as client:
             for example in tqdm(examples):
                 text = " ".join(example['word'])
