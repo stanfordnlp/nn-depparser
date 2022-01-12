@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
+import json
+import logging
 import os
 import shutil
 import sys
-import utils
-import logging
 import time
+import utils
 
 import config
 from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
-#from config import _floatX
 
 from model import FastAccurateParserModel
 import torch
@@ -438,10 +438,19 @@ def main(args):
     logging.info('Load training data...')
     train_set = utils.read_conll(os.path.join(args.data_path, args.train_file),
                                  lowercase=args.lowercase,
-                                 max_example=args.max_train)
+                                 max_example=args.max_train, 
+                                 corenlp_tags=args.corenlp_tags,
+                                 lang=args.corenlp_tag_lang)
     logging.info('Load development data...')
     dev_set = utils.read_conll(os.path.join(args.data_path, args.dev_file),
-                               lowercase=args.lowercase)
+                               lowercase=args.lowercase,
+                               corenlp_tags=args.corenlp_tags,
+                               lang=args.corenlp_tag_lang)
+    if args.save_path:
+        with open(f"{save_path}/train-set.json", "w") as train_json:
+            train_json.write(json.dumps(train_set)
+        with open(f"{save_path)/dev-set.json", "w") as dev_json:
+            dev_json.write(json.dumps(dev_set))
     logging.info('-' * 100)
 
     nndep = Parser(train_set, args)
