@@ -37,6 +37,9 @@ def get_args():
                         help='Keep the most frequent max_words word types, default is None.')
     parser.add_argument('--use_pos', type='bool', default=True,
                         help='Whether to use the part-of-speech tags, default is True.')
+    parser.add_argument('--corenlp_tags', type='bool', action='store_true',
+                        help='Automatically tag with CoreNLP')
+    parser.add_argument('--corenlp_tag_lang', help='CoreNLP language for tagging')
     parser.add_argument('--use_dep', type='bool', default=True,
                         help='Whether to use the dependency labels, default is False.')
 
