@@ -9,6 +9,7 @@ import re
 from tqdm import tqdm
 
 token_rgx = re.compile("^[0-9]+\t.*")
+empty_node_rgx = re.compile("^[0-9]+\.[0-9]+\t.*")
 mwt_rgx = re.compile("^[0-9]+\-[0-9]+\t.*")
 
 def read_conll(in_file, lowercase=False, max_example=None, corenlp_tags=False, lang=None):
@@ -17,9 +18,12 @@ def read_conll(in_file, lowercase=False, max_example=None, corenlp_tags=False, l
         See CoNLL-U format at https://universaldependencies.org/format.html
 
         Optionally can run CoreNLP tagging. Must specify lang.
+ 
+        Empty node sentences will be skipped.
     """
     examples = []
     with open(in_file) as f:
+        empty_node = False
         word, pos, head, label = [], [], [], []
         for line in f.readlines():
             sp = line.strip().split('\t')
@@ -31,8 +35,13 @@ def read_conll(in_file, lowercase=False, max_example=None, corenlp_tags=False, l
                     label.append(sp[7])
             elif mwt_rgx.match(line):
                 continue
+            elif empty_node_rgx.match(line):
+                empty_node = True
+                continue
             elif len(word) > 0:
-                examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
+                if not empty_node:
+                    examples.append({'word': word, 'pos': pos, 'head': head, 'label': label})
+                empty_node = False
                 word, pos, head, label = [], [], [], []
                 if (max_example is not None) and (len(examples) == max_example):
                     break
