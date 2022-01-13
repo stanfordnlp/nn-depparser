@@ -1,7 +1,8 @@
 # nn-depparser
 
-A re-implementation of `nndep` using Theano.
+A re-implementation of `nndep` using PyTorch.
 
 Currently used for training CoreNLP dependency parsing models.
 
-Danqi Chen (`danqi@cs.stanford.edu`)
+Requires Stanza for some features (auto-tagging with CoreNLP via server).
+
