@@ -8,6 +8,8 @@ import sys
 import time
 import utils
 
+from tqdm import tqdm
+
 import config
 from config import L_PREFIX, P_PREFIX, UNK, NULL, ROOT
 
@@ -507,7 +509,7 @@ def main(args):
     start_time = time.time()
     n_updates = 0
     best_UAS = 0.0
-    for epoch in range(args.n_epoches):
+    for epoch in tqdm(range(args.n_epoches)):
         minibatches = utils.get_minibatches(n_train, args.batch_size)
         for index, minibatch in enumerate(minibatches):
             train_x = torch.tensor([train_examples[t][0] for t in minibatch]).to(torch.device("cuda"))
