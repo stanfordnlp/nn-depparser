@@ -392,28 +392,8 @@ def main(args):
     train_set = nndep.vectorize(train_set)
     dev_set = nndep.vectorize(dev_set)
 
-    # Load embedding file
-    #if args.embedding_file is None:
-        #embeddings = {}
-    #else:
-        #logging.info('Load embedding file: %s' % args.embedding_file)
-        #embeddings = utils.get_embeddings(args.embedding_file)
-        #for w, w_emb in embeddings.items():
-            #assert len(w_emb) == args.embedding_size
-        #logging.info('#words = %d, dim = %d' % (len(embeddings), args.embedding_size))
-        #logging.info('-' * 100)
-
     # Build functions
-    logging.info('Build functions...')
-    #if args.pre_trained is not None:
-        #dic = utils.load_params(args.pre_trained)
-        #pre_trained_params = dic['params']
-        #for i in nndep.id2tok:
-            #assert (i in dic['id2tok']) and (nndep.id2tok[i] == dic['id2tok'][i])
-        #logging.info('Load pre-trained model: %s' % args.pre_trained)
-    #else:
-        #pre_trained_params = None
-    logging.info('Setting up model...')
+    logging.info('Setting up model and optimizer...')
     nndep.setup_model_and_optimizer(args.embedding_file)
     logging.info('Done.')
 
