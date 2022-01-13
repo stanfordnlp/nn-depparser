@@ -302,79 +302,6 @@ class Parser:
         checkpoint_label = "" if not label else f"-{label}" 
         torch.save(model_checkpoint, os.path.join(self.experiment_dir, f"model{checkpoint_label}.pt"))
 
-    def build_fn(self, emb={}, pre_trained_params=None):
-        in_x = T.imatrix('x')
-        in_y = T.ivector('y')
-        in_l = T.matrix('l')
-
-        l_in = lasagne.layers.InputLayer((None, self.n_features), in_x)
-        embeddings = np.random.normal(0, 0.01, (self.n_tokens, self.embedding_size)).astype(_floatX)
-        n_pre_trained = 0
-        for token in self.tok2id:
-            i = self.tok2id[token]
-            if token in emb:
-                embeddings[i] = emb[token]
-                n_pre_trained += 1
-            elif token.lower() in emb:
-                embeddings[i] = emb[token.lower()]
-                n_pre_trained += 1
-        logging.info('pre-trained: %d / %d = %.2f%%' % (n_pre_trained, self.n_tokens,
-                                                        n_pre_trained * 100.0 / self.n_tokens))
-        l_emb = lasagne.layers.EmbeddingLayer(l_in, self.n_tokens,
-                                              self.embedding_size, W=embeddings)
-        network = l_emb
-        if self.input_dropout_rate > 0:
-            network = lasagne.layers.DropoutLayer(network, p=self.input_dropout_rate)
-
-        for _ in range(self.n_layers):
-            if self.nonlinearity == 'relu':
-                network = lasagne.layers.DenseLayer(network, self.hidden_size,
-                                                    b=lasagne.init.Constant(self.b_init),
-                                                    nonlinearity=lasagne.nonlinearities.rectify)
-            elif self.nonlinearity == 'tanh':
-                network = lasagne.layers.DenseLayer(network, self.hidden_size,
-                                                    nonlinearity=lasagne.nonlinearities.tanh)
-            elif self.nonlinearity == 'cubic':
-                network = lasagne.layers.DenseLayer(network, self.hidden_size,
-                                                    nonlinearity=None)
-                network = CubicLayer(network)
-            else:
-                raise NotImplementedError('nonlinearity = %s' % self.nonlinearity)
-            if self.dropout_rate > 0:
-                network = lasagne.layers.DropoutLayer(network, p=self.dropout_rate)
-
-        network = lasagne.layers.DenseLayer(network, self.n_trans, b=None,
-                                            nonlinearity=lasagne.nonlinearities.softmax)
-
-        if pre_trained_params is not None:
-            lasagne.layers.set_all_param_values(network, pre_trained_params, trainable=True)
-
-        # train_prob = lasagne.layers.get_output(network, deterministic=False) * in_l
-        # train_prob = train_prob / train_prob.sum(axis=-1).reshape((train_prob.shape[0], 1))
-        train_prob = lasagne.layers.get_output(network, deterministic=False)
-        loss = lasagne.objectives.categorical_crossentropy(train_prob, in_y).mean()
-        if self.l2_reg > 0:
-            loss += self.l2_reg * \
-                lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
-        self.params = lasagne.layers.get_all_params(network, trainable=True)
-
-        if self.optimizer == 'sgd':
-            updates = lasagne.updates.sgd(loss, self.params, learning_rate=self.learning_rate)
-        elif self.optimizer == 'adam':
-            updates = lasagne.updates.adam(loss, self.params)
-        elif self.optimizer == 'rmsprop':
-            updates = lasagne.updates.rmsprop(loss, self.params)
-        elif self.optimizer == 'adagrad':
-            updates = lasagne.updates.adagrad(loss, self.params, learning_rate=self.learning_rate)
-        else:
-            raise NotImplementedError('optimizer = %s' % self.optimizer)
-        self.train_fn = theano.function([in_x, in_y], loss, updates=updates)
-
-        test_prob = lasagne.layers.get_output(network, deterministic=True) * in_l
-        pred = T.argmax(test_prob, axis=-1)
-        acc = T.mean(T.eq(pred, in_y))
-        self.test_fn = theano.function([in_x, in_l, in_y], acc)
-        self.pred_fn = theano.function([in_x, in_l], pred)
 
     def legal_labels(self, stack, buf):
         labels = ([1] if len(stack) > 2 else [0]) * self.n_deprel
@@ -486,7 +413,6 @@ def main(args):
         #logging.info('Load pre-trained model: %s' % args.pre_trained)
     #else:
         #pre_trained_params = None
-    #nndep.build_fn(embeddings, pre_trained_params)
     logging.info('Setting up model...')
     nndep.setup_model_and_optimizer(args.embedding_file)
     logging.info('Done.')
