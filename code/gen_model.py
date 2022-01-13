@@ -61,7 +61,6 @@ def get_precomputed(wid, pid, lid, max_precomputed):
 def load_pytorch_checkpoint(checkpoint_path):
      checkpoint = torch.load(f"{checkpoint_path}/model.pt", map_location=torch.device("cpu"))
      tok2id = json.loads(open(f"{checkpoint_path}/tok2id.json").read())
-     print(checkpoint["model_state_dict"].keys())
      params = []
      params.append(checkpoint["model_state_dict"]["embeddings.weight"])
      params.append(torch.transpose(checkpoint["model_state_dict"]["linear_layer.weight"], 0, 1))
@@ -78,10 +77,7 @@ if __name__ == '__main__':
     parser.add_argument('model_file')
     args = parser.parse_args()
 
-    #if len(sys.argv) <= 1:
-        #sys.exit('Usage: python gen_model.py model.pkl.gz')
     model = load_pytorch_checkpoint(args.model_file)
-    #model = utils.load_params(args.model_file)
     params = model['params']
     id2tok = model['id2tok']
     tok2id = {v: k for (k, v) in id2tok.items()}
