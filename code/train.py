@@ -454,7 +454,7 @@ def main(args):
                 logging.info('Dev UAS: %.2f, LAS: %.2f' % (UAS * 100.0, LAS * 100.0))
                 if UAS > best_UAS:
                     best_UAS = UAS
-                    logging.info('Best UAS: epoch = %d, n_udpates = %d, UAS = %.2f, LAS = %.2f'
+                    logging.info('Best UAS: epoch = %d, n_updates = %d, UAS = %.2f, LAS = %.2f'
                                  % (epoch, n_updates, UAS * 100.0, LAS * 100.0))
                     if args.experiment_dir is not None:
                         nndep.save_model_checkpoint()
