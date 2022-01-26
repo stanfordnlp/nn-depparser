@@ -56,6 +56,9 @@ def get_args():
     parser.add_argument('--dev_file',
                         default='dev.conll',
                         help='Dev file')
+    parser.add_argument('--test_file',
+                        default='test.conll',
+                        help='Test file')
     parser.add_argument('--max_train', type=int, default=None,
                         help='Only use the first max_train examples for training, default is None')
     parser.add_argument('--embedding_file',

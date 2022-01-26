@@ -380,10 +380,25 @@ def main(args):
                                lowercase=args.lowercase,
                                corenlp_tags=args.corenlp_tags,
                                lang=args.corenlp_tag_lang)
+    logging.info('Load test data...')
+    if args.corenlp_tags:
+        logging.info('Launching CoreNLP server to generate predicted tags...')
+    test_set = utils.read_conll(os.path.join(args.data_path, args.test_file),
+                               lowercase=args.lowercase,
+                               corenlp_tags=args.corenlp_tags,
+                               lang=args.corenlp_tag_lang)
     with open(f"{args.experiment_dir}/train-set.json", "w") as train_json:
         train_json.write(json.dumps(train_set))
+    with open(f"{args.experiment_dir}/train-set.conllu", "w") as train_conllu_file:
+        train_conllu_file.write(utils.data_json_to_conllu(train_set))
     with open(f"{args.experiment_dir}/dev-set.json", "w") as dev_json:
         dev_json.write(json.dumps(dev_set))
+    with open(f"{args.experiment_dir}/dev-set.conllu", "w") as dev_conllu_file:
+        dev_conllu_file.write(utils.data_json_to_conllu(dev_set))
+    with open(f"{args.experiment_dir}/test-set.json", "w") as test_json:
+        test_json.write(json.dumps(test_set))
+    with open(f"{args.experiment_dir}/test-set.conllu", "w") as test_conllu_file:
+        test_conllu_file.write(utils.data_json_to_conllu(test_set))
     logging.info('-' * 100)
 
     nndep = Parser(train_set, args)
