@@ -63,10 +63,17 @@ def read_conll(
         ) as client:
             for example in tqdm(examples):
                 text = " ".join(example["word"])
+                # special case handle french which has tokens like 10 000
+                if lang == "french":
+                   french_word = [re.sub(" ", ",", word) for word in example["word"]]
+                   text = " ".join(french_word)
                 ann = client.annotate(text)
                 tokens = [tok.value for tok in ann.sentence[0].token]
                 tags = [tok.pos for tok in ann.sentence[0].token]
-                assert tokens == example["word"]
+                if lang != "french":
+                    assert tokens == example["word"]
+                else:
+                    assert len(tags) == len(example["word"])
                 example["pos"] = tags
     logging.info("#examples: %d" % len(examples))
     return examples
@@ -94,13 +101,15 @@ def build_dict(keys, n_max=None, offset=0):
     return {w[0]: index + offset for (index, w) in enumerate(ls)}
 
 
-def get_embeddings(in_file):
+def get_embeddings(in_file, size):
     """
     Load embedding file.
     """
     embeddings = {}
     for line in open(in_file).readlines():
         sp = line.strip().split()
+        if len(sp) != size + 1:
+            continue
         embeddings[sp[0]] = [float(x) for x in sp[1:]]
     return embeddings
 
