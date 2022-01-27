@@ -250,7 +250,7 @@ class Parser:
         )
         n_pre_trained = 0
         if embedding_file:
-            pretrained_embeddings = utils.get_embeddings(embedding_file)
+            pretrained_embeddings = utils.get_embeddings(embedding_file, self.embedding_size)
             for token in self.tok2id:
                 i = self.tok2id[token]
                 if token in pretrained_embeddings:
