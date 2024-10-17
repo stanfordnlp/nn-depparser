@@ -8,9 +8,9 @@ import pickle
 import re
 from tqdm import tqdm
 
-token_rgx = re.compile("^[0-9]+\t.*")
-empty_node_rgx = re.compile("^[0-9]+\.[0-9]+\t.*")
-mwt_rgx = re.compile("^[0-9]+\-[0-9]+\t.*")
+token_rgx = re.compile(r"^[0-9]+\t.*")
+empty_node_rgx = re.compile(r"^[0-9]+[.][0-9]+\t.*")
+mwt_rgx = re.compile(r"^[0-9]+[-][0-9]+\t.*")
 
 
 def read_conll(
